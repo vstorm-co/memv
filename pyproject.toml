@@ -1,0 +1,42 @@
+[project]
+name = "agentmemory"
+version = "0.1.0"
+description = "Structured, temporal memory for AI agents."
+readme = "README.md"
+authors = [
+    { name = "bartosz roguski", email = "bartosz.k.roguski@gmail.com" }
+]
+requires-python = ">=3.13"
+dependencies = []
+
+[project.scripts]
+agentmemory = "agentmemory:main"
+
+[build-system]
+requires = ["uv_build>=0.9.21,<0.10.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "pre-commit>=4.5.1",
+    "pyright>=1.1.407",
+    "pytest>=9.0.2",
+    "ruff>=0.14.10",
+]
+
+[tool.ruff]
+line-length = 135
+
+[tool.ruff.lint]
+select = [
+    "I",        # isort
+    "ERA",      # dead code
+    "F401",     # unused imports
+    "E",        # pycodestyle error
+    "W",        # pycodestyle warning
+    "B",        # flake8-bugbear
+]
+
+[tool.pyright]
+pythonVersion = "3.13"
+typeCheckingMode = "standard"
