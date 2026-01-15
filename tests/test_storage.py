@@ -5,7 +5,13 @@ from uuid import uuid4
 import pytest
 
 from agentmemory.models import Episode, Message, MessageRole, SemanticKnowledge
-from agentmemory.storage.sqlite import SQLiteEpisodeStore, SQLiteMessageStore, SQLiteSemanticKnowledgeStore
+from agentmemory.storage.sqlite import (
+    EpisodeStore,
+    KnowledgeStore,
+    MessageStore,
+    TextIndex,
+    VectorIndex,
+)
 
 MSG_1 = Message(user_id="user1", role=MessageRole.USER, content="Hello", sent_at=datetime.now(timezone.utc))
 MSG_2 = Message(user_id="user2", role=MessageRole.ASSISTANT, content="Hi", sent_at=datetime.now(timezone.utc))
@@ -13,7 +19,7 @@ MSG_2 = Message(user_id="user2", role=MessageRole.ASSISTANT, content="Hi", sent_
 
 @pytest.mark.asyncio
 async def test_sqlite_message_storage():
-    async with SQLiteMessageStore(":memory:") as storage:
+    async with MessageStore(":memory:") as storage:
         await storage.add(MSG_1)
         await storage.add(MSG_2)
         message1 = await storage.get(MSG_1.id)
@@ -26,7 +32,7 @@ async def test_sqlite_message_storage():
 
 @pytest.mark.asyncio
 async def test_sqlite_message_storage_get_by_user_id():
-    async with SQLiteMessageStore(":memory:") as storage:
+    async with MessageStore(":memory:") as storage:
         await storage.add(MSG_1)
         await storage.add(MSG_2)
         messages = await storage.get_by_user("user1")
@@ -36,7 +42,7 @@ async def test_sqlite_message_storage_get_by_user_id():
 
 @pytest.mark.asyncio
 async def test_sqlite_message_storage_get_by_time_range():
-    async with SQLiteMessageStore(":memory:") as storage:
+    async with MessageStore(":memory:") as storage:
         await storage.add(MSG_1)
         await storage.add(MSG_2)
         messages = await storage.get_by_time_range("user1", datetime.now(timezone.utc) - timedelta(days=1), datetime.now(timezone.utc))
@@ -64,7 +70,7 @@ EP_2 = Episode(
 
 @pytest.mark.asyncio
 async def test_sqlite_episode_store():
-    async with SQLiteEpisodeStore(":memory:") as storage:
+    async with EpisodeStore(":memory:") as storage:
         await storage.add(EP_1)
         await storage.add(EP_2)
         episode1 = await storage.get(EP_1.id)
@@ -77,7 +83,7 @@ async def test_sqlite_episode_store():
 
 @pytest.mark.asyncio
 async def test_sqlite_episode_store_get_by_user():
-    async with SQLiteEpisodeStore(":memory:") as storage:
+    async with EpisodeStore(":memory:") as storage:
         await storage.add(EP_1)
         await storage.add(EP_2)
         episodes = await storage.get_by_user("user1")
@@ -87,7 +93,7 @@ async def test_sqlite_episode_store_get_by_user():
 
 @pytest.mark.asyncio
 async def test_sqlite_episode_store_get_by_time_range():
-    async with SQLiteEpisodeStore(":memory:") as storage:
+    async with EpisodeStore(":memory:") as storage:
         await storage.add(EP_1)
         await storage.add(EP_2)
         episodes = await storage.get_by_time_range("user1", datetime.now(timezone.utc) - timedelta(days=1), datetime.now(timezone.utc))
@@ -109,7 +115,7 @@ SK_2 = SemanticKnowledge(
 
 @pytest.mark.asyncio
 async def test_semantic_knowledge_store():
-    async with SQLiteSemanticKnowledgeStore(":memory:") as storage:
+    async with KnowledgeStore(":memory:") as storage:
         await storage.add(SK_1)
         await storage.add(SK_2)
         knowledge1 = await storage.get(SK_1.id)
@@ -122,7 +128,7 @@ async def test_semantic_knowledge_store():
 
 @pytest.mark.asyncio
 async def test_semantic_knowledge_store_get_by_episode():
-    async with SQLiteSemanticKnowledgeStore(":memory:") as storage:
+    async with KnowledgeStore(":memory:") as storage:
         await storage.add(SK_1)
         await storage.add(SK_2)
         knowledge = await storage.get_by_episode(EP_1.id)
@@ -135,28 +141,28 @@ async def test_semantic_knowledge_store_get_by_episode():
 
 @pytest.mark.asyncio
 async def test_get_nonexistent_message():
-    async with SQLiteMessageStore(":memory:") as storage:
+    async with MessageStore(":memory:") as storage:
         result = await storage.get(uuid4())
     assert result is None
 
 
 @pytest.mark.asyncio
 async def test_get_nonexistent_episode():
-    async with SQLiteEpisodeStore(":memory:") as storage:
+    async with EpisodeStore(":memory:") as storage:
         result = await storage.get(uuid4())
     assert result is None
 
 
 @pytest.mark.asyncio
 async def test_get_nonexistent_knowledge():
-    async with SQLiteSemanticKnowledgeStore(":memory:") as storage:
+    async with KnowledgeStore(":memory:") as storage:
         result = await storage.get(uuid4())
     assert result is None
 
 
 @pytest.mark.asyncio
 async def test_duplicate_id_raises_error():
-    async with SQLiteMessageStore(":memory:") as storage:
+    async with MessageStore(":memory:") as storage:
         await storage.add(MSG_1)
         with pytest.raises(IntegrityError):
             await storage.add(MSG_1)
@@ -164,7 +170,7 @@ async def test_duplicate_id_raises_error():
 
 @pytest.mark.asyncio
 async def test_empty_time_range_query():
-    async with SQLiteMessageStore(":memory:") as storage:
+    async with MessageStore(":memory:") as storage:
         await storage.add(MSG_1)
         # Query range in the past, before any messages
         messages = await storage.get_by_time_range(
@@ -175,7 +181,7 @@ async def test_empty_time_range_query():
 
 @pytest.mark.asyncio
 async def test_get_by_user_no_results():
-    async with SQLiteMessageStore(":memory:") as storage:
+    async with MessageStore(":memory:") as storage:
         await storage.add(MSG_1)
         messages = await storage.get_by_user("nonexistent_user")
     assert len(messages) == 0
@@ -191,11 +197,11 @@ async def test_store_reopen():
 
     try:
         # First session: add data
-        async with SQLiteMessageStore(db_path) as storage:
+        async with MessageStore(db_path) as storage:
             await storage.add(MSG_1)
 
         # Second session: verify data persists
-        async with SQLiteMessageStore(db_path) as storage:
+        async with MessageStore(db_path) as storage:
             message = await storage.get(MSG_1.id)
         assert message is not None
         assert message.id == MSG_1.id
@@ -208,7 +214,7 @@ async def test_transaction_commits_atomically():
     msg_a = Message(user_id="user1", role=MessageRole.USER, content="A", sent_at=datetime.now(timezone.utc))
     msg_b = Message(user_id="user1", role=MessageRole.USER, content="B", sent_at=datetime.now(timezone.utc))
 
-    async with SQLiteMessageStore(":memory:") as storage:
+    async with MessageStore(":memory:") as storage:
         async with storage.transaction():
             await storage.add(msg_a)
             await storage.add(msg_b)
@@ -221,7 +227,7 @@ async def test_transaction_commits_atomically():
 async def test_transaction_rollback_on_error():
     msg_a = Message(user_id="user1", role=MessageRole.USER, content="A", sent_at=datetime.now(timezone.utc))
 
-    async with SQLiteMessageStore(":memory:") as storage:
+    async with MessageStore(":memory:") as storage:
         try:
             async with storage.transaction():
                 await storage.add(msg_a)
@@ -231,3 +237,54 @@ async def test_transaction_rollback_on_error():
         # Should be rolled back
         messages = await storage.get_by_user("user1")
     assert len(messages) == 0
+
+
+@pytest.mark.asyncio
+async def test_vector_index():
+    async with VectorIndex(":memory:", dimensions=4) as index:
+        # Create some test vectors
+        id1 = uuid4()
+        id2 = uuid4()
+        id3 = uuid4()
+
+        # Add vectors (use small dimensions for testing)
+        await index.add(id1, [1.0, 0.0, 0.0, 0.0])
+        await index.add(id2, [0.9, 0.1, 0.0, 0.0])  # Similar to id1
+        await index.add(id3, [0.0, 0.0, 0.0, 1.0])  # Different from id1
+
+        # Search for vector similar to id1
+        results = await index.search([1.0, 0.0, 0.0, 0.0], top_k=3)
+
+        # id1 should be first (exact match), id2 second, id3 last
+        assert results[0] == id1
+        assert results[1] == id2
+        assert results[2] == id3
+
+
+@pytest.mark.asyncio
+async def test_text_index():
+    async with TextIndex(":memory:") as index:
+        # Create some test documents
+        id1 = uuid4()
+        id2 = uuid4()
+        id3 = uuid4()
+
+        # Add documents with different content
+        await index.add(id1, "Python programming language for data science")
+        await index.add(id2, "Python snake in the wild")
+        await index.add(id3, "JavaScript is a web programming language")
+
+        # Search for "Python programming"
+        results = await index.search("Python programming", top_k=3)
+
+        # id1 should rank highest (has both words)
+        assert results[0] == id1
+
+        # Search for "snake"
+        results = await index.search("snake", top_k=3)
+        assert results[0] == id2
+
+        # Search for "programming" should return id1 and id3
+        results = await index.search("programming", top_k=3)
+        assert id1 in results
+        assert id3 in results

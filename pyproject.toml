@@ -9,7 +9,9 @@ authors = [
 requires-python = ">=3.13"
 dependencies = [
     "aiosqlite>=0.22.1",
+    "openai>=2.15.0",
     "pydantic>=2.12.5",
+    "sqlite-vec>=0.1.6",
 ]
 
 [project.scripts]

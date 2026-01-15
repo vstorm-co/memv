@@ -1,4 +1,5 @@
 import json
+import struct
 from abc import ABC, abstractmethod
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
@@ -6,11 +7,12 @@ from typing import AsyncIterator
 from uuid import UUID
 
 import aiosqlite
+import sqlite_vec
 
 from agentmemory.models import Episode, Message, MessageRole, SemanticKnowledge
 
 
-class SQLiteStoreBase(ABC):
+class StoreBase(ABC):
     def __init__(self, db_path: str):
         self.db_path = db_path
         self._db: aiosqlite.Connection | None = None
@@ -62,7 +64,7 @@ class SQLiteStoreBase(ABC):
         return self._db
 
 
-class SQLiteMessageStore(SQLiteStoreBase):
+class MessageStore(StoreBase):
     async def add(self, message: Message) -> None:
         await self._conn.execute(
             "INSERT INTO messages (id, user_id, role, content, sent_at) VALUES (?, ?, ?, ?, ?)",
@@ -108,7 +110,7 @@ class SQLiteMessageStore(SQLiteStoreBase):
         await self._commit()
 
 
-class SQLiteEpisodeStore(SQLiteStoreBase):
+class EpisodeStore(StoreBase):
     async def add(self, episode: Episode) -> None:
         await self._conn.execute(
             "INSERT INTO episodes (id, user_id, message_ids, title, narrative, start_time, end_time, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",  # noqa E501
@@ -167,7 +169,7 @@ class SQLiteEpisodeStore(SQLiteStoreBase):
         await self._commit()
 
 
-class SQLiteSemanticKnowledgeStore(SQLiteStoreBase):
+class KnowledgeStore(StoreBase):
     async def add(self, knowledge: SemanticKnowledge) -> None:
         await self._conn.execute(
             "INSERT INTO semantic_knowledge (id, statement, source_episode_id, created_at, importance_score, embedding) VALUES (?, ?, ?, ?, ?, ?)",  # noqa E501
@@ -212,3 +214,102 @@ class SQLiteSemanticKnowledgeStore(SQLiteStoreBase):
         )
         await self._conn.execute("CREATE INDEX IF NOT EXISTS idx_sk_episode ON semantic_knowledge(source_episode_id)")
         await self._commit()
+
+
+class VectorIndex(StoreBase):
+    def __init__(self, db_path: str, dimensions: int = 1536):
+        super().__init__(db_path)
+        self.dimensions = dimensions
+
+    async def open(self):
+        self._db = await aiosqlite.connect(self.db_path)
+        self._db.row_factory = aiosqlite.Row
+        # Load sqlite-vec extension
+        await self._db.enable_load_extension(True)
+        await self._db.load_extension(sqlite_vec.loadable_path())
+        await self._db.enable_load_extension(False)
+        await self._create_table()
+
+    async def _create_table(self):
+        # Mapping table
+        await self._conn.execute("""
+            CREATE TABLE IF NOT EXISTS vec_mapping (
+                rowid INTEGER PRIMARY KEY AUTOINCREMENT,
+                uuid TEXT UNIQUE NOT NULL
+            )
+        """)
+        # Vector table
+        await self._conn.execute(f"""
+            CREATE VIRTUAL TABLE IF NOT EXISTS vec_knowledge
+            USING vec0(embedding float[{self.dimensions}])
+        """)
+        await self._conn.commit()
+
+    async def add(self, uuid: UUID, embedding: list[float]) -> None:
+        # Insert into mapping to get rowid
+        cursor = await self._conn.execute("INSERT INTO vec_mapping (uuid) VALUES (?)", (str(uuid),))
+        rowid = cursor.lastrowid
+
+        # Insert into vector table
+        embedding_bytes = struct.pack(f"{len(embedding)}f", *embedding)
+        await self._conn.execute("INSERT INTO vec_knowledge (rowid, embedding) VALUES (?, ?)", (rowid, embedding_bytes))
+        await self._conn.commit()
+
+    async def search(self, query_embedding: list[float], top_k: int = 10) -> list[UUID]:
+        query_bytes = struct.pack(f"{len(query_embedding)}f", *query_embedding)
+        cursor = await self._conn.execute(
+            """
+            SELECT vec_mapping.uuid
+            FROM vec_knowledge
+            JOIN vec_mapping ON vec_knowledge.rowid = vec_mapping.rowid
+            WHERE vec_knowledge.embedding MATCH ?
+              AND k = ?
+            ORDER BY distance
+        """,
+            (query_bytes, top_k),
+        )
+        rows = await cursor.fetchall()
+        return [UUID(row["uuid"]) for row in rows]
+
+
+class TextIndex(StoreBase):
+    """Full-text search index using  FTS5."""
+
+    async def _create_table(self):
+        # Mapping table
+        await self._conn.execute("""
+            CREATE TABLE IF NOT EXISTS fts_mapping (
+                rowid INTEGER PRIMARY KEY AUTOINCREMENT,
+                uuid TEXT UNIQUE NOT NULL
+            )
+        """)
+        # FTS5 virtual table
+        await self._conn.execute("""
+            CREATE VIRTUAL TABLE IF NOT EXISTS fts_knowledge
+            USING fts5(content)
+        """)
+        await self._conn.commit()
+
+    async def add(self, uuid: UUID, text: str) -> None:
+        # Insert into mapping to get rowid
+        cursor = await self._conn.execute("INSERT INTO fts_mapping (uuid) VALUES (?)", (str(uuid),))
+        rowid = cursor.lastrowid
+
+        # Insert into FTS5 table
+        await self._conn.execute("INSERT INTO fts_knowledge (rowid, content) VALUES (?, ?)", (rowid, text))
+        await self._conn.commit()
+
+    async def search(self, query: str, top_k: int = 10) -> list[UUID]:
+        cursor = await self._conn.execute(
+            """
+            SELECT fts_mapping.uuid
+            FROM fts_knowledge
+            JOIN fts_mapping ON fts_knowledge.rowid = fts_mapping.rowid
+            WHERE fts_knowledge.content MATCH ?
+            ORDER BY rank
+            LIMIT ?
+        """,
+            (query, top_k),
+        )
+        rows = await cursor.fetchall()
+        return [UUID(row["uuid"]) for row in rows]

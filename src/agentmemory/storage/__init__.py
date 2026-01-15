@@ -1,13 +1,13 @@
 from agentmemory.storage.sqlite import (
-    SQLiteEpisodeStore,
-    SQLiteMessageStore,
-    SQLiteSemanticKnowledgeStore,
-    SQLiteStoreBase,
+    EpisodeStore,
+    KnowledgeStore,
+    MessageStore,
+    StoreBase,
 )
 
 __all__ = [
-    "SQLiteStoreBase",
-    "SQLiteMessageStore",
-    "SQLiteEpisodeStore",
-    "SQLiteSemanticKnowledgeStore",
+    "StoreBase",
+    "MessageStore",
+    "EpisodeStore",
+    "KnowledgeStore",
 ]
