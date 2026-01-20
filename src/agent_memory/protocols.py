@@ -1,8 +1,10 @@
 from datetime import datetime
-from typing import Protocol
+from typing import Protocol, TypeVar
 from uuid import UUID
 
-from agentmemory.models import Episode, Message, SemanticKnowledge
+from agent_memory.models import Episode, Message, SemanticKnowledge
+
+T = TypeVar("T")
 
 
 class MessageStore(Protocol):
@@ -28,3 +30,10 @@ class KnowledgeStore(Protocol):
 class EmbeddingClient(Protocol):
     async def embed(self, text: str) -> list[float]: ...
     async def embed_batch(self, texts: list[str]) -> list[list[float]]: ...
+
+
+class LLMClient(Protocol):
+    """Protocol for LLM completions with structured output."""
+
+    async def generate(self, prompt: str) -> str: ...
+    async def generate_structured(self, prompt: str, response_model: type[T]) -> T: ...

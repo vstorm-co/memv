@@ -4,8 +4,8 @@ from uuid import uuid4
 
 import pytest
 
-from agentmemory.models import Episode, Message, MessageRole, SemanticKnowledge
-from agentmemory.storage.sqlite import (
+from agent_memory.models import Episode, Message, MessageRole, SemanticKnowledge
+from agent_memory.storage.sqlite import (
     EpisodeStore,
     KnowledgeStore,
     MessageStore,

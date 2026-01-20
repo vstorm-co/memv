@@ -4,9 +4,10 @@ from uuid import UUID, uuid4
 import pytest
 import pytest_asyncio
 
-from agentmemory.models import SemanticKnowledge
-from agentmemory.retrieval import Retriever
-from agentmemory.storage.sqlite import (
+from agent_memory.models import SemanticKnowledge
+from agent_memory.retrieval import Retriever
+from agent_memory.storage.sqlite import (
+    EpisodeStore,
     KnowledgeStore,
     TextIndex,
     VectorIndex,
@@ -40,16 +41,19 @@ def make_knowledge(statement: str, episode_id: UUID | None = None) -> SemanticKn
 async def retriever_setup():
     """Setup retriever with stores and fake embeddings."""
     knowledge_store = KnowledgeStore(db_path=":memory:")
-    vector_index = VectorIndex(db_path=":memory:", dimensions=384)
-    text_index = TextIndex(db_path=":memory:")
+    episode_store = EpisodeStore(db_path=":memory:")
+    vector_index = VectorIndex(db_path=":memory:", dimensions=384, name="knowledge")
+    text_index = TextIndex(db_path=":memory:", name="knowledge")
     embedder = FakeEmbedder()
 
     await knowledge_store.open()
+    await episode_store.open()
     await vector_index.open()
     await text_index.open()
 
     retriever = Retriever(
         knowledge_store=knowledge_store,
+        episode_store=episode_store,
         vector_index=vector_index,
         text_index=text_index,
         embedding_client=embedder,
@@ -58,6 +62,7 @@ async def retriever_setup():
     yield retriever, knowledge_store, vector_index, text_index, embedder
 
     await knowledge_store.close()
+    await episode_store.close()
     await vector_index.close()
     await text_index.close()
 

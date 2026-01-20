@@ -1,4 +1,4 @@
-from agentmemory.storage.sqlite import (
+from agent_memory.storage.sqlite import (
     EpisodeStore,
     KnowledgeStore,
     MessageStore,

@@ -1,4 +1,5 @@
 import json
+import re
 import struct
 from abc import ABC, abstractmethod
 from contextlib import asynccontextmanager
@@ -9,7 +10,7 @@ from uuid import UUID
 import aiosqlite
 import sqlite_vec
 
-from agentmemory.models import Episode, Message, MessageRole, SemanticKnowledge
+from agent_memory.models import Episode, Message, MessageRole, SemanticKnowledge
 
 
 class StoreBase(ABC):
@@ -217,9 +218,14 @@ class KnowledgeStore(StoreBase):
 
 
 class VectorIndex(StoreBase):
-    def __init__(self, db_path: str, dimensions: int = 1536):
+    """Vector similarity index using sqlite-vec."""
+
+    def __init__(self, db_path: str, dimensions: int = 1536, name: str = "knowledge"):
         super().__init__(db_path)
         self.dimensions = dimensions
+        self.name = name
+        self._mapping_table = f"vec_{name}_mapping"
+        self._vec_table = f"vec_{name}"
 
     async def open(self):
         self._db = await aiosqlite.connect(self.db_path)
@@ -232,37 +238,37 @@ class VectorIndex(StoreBase):
 
     async def _create_table(self):
         # Mapping table
-        await self._conn.execute("""
-            CREATE TABLE IF NOT EXISTS vec_mapping (
+        await self._conn.execute(f"""
+            CREATE TABLE IF NOT EXISTS {self._mapping_table} (
                 rowid INTEGER PRIMARY KEY AUTOINCREMENT,
                 uuid TEXT UNIQUE NOT NULL
             )
         """)
         # Vector table
         await self._conn.execute(f"""
-            CREATE VIRTUAL TABLE IF NOT EXISTS vec_knowledge
+            CREATE VIRTUAL TABLE IF NOT EXISTS {self._vec_table}
             USING vec0(embedding float[{self.dimensions}])
         """)
         await self._conn.commit()
 
     async def add(self, uuid: UUID, embedding: list[float]) -> None:
         # Insert into mapping to get rowid
-        cursor = await self._conn.execute("INSERT INTO vec_mapping (uuid) VALUES (?)", (str(uuid),))
+        cursor = await self._conn.execute(f"INSERT INTO {self._mapping_table} (uuid) VALUES (?)", (str(uuid),))
         rowid = cursor.lastrowid
 
         # Insert into vector table
         embedding_bytes = struct.pack(f"{len(embedding)}f", *embedding)
-        await self._conn.execute("INSERT INTO vec_knowledge (rowid, embedding) VALUES (?, ?)", (rowid, embedding_bytes))
+        await self._conn.execute(f"INSERT INTO {self._vec_table} (rowid, embedding) VALUES (?, ?)", (rowid, embedding_bytes))
         await self._conn.commit()
 
     async def search(self, query_embedding: list[float], top_k: int = 10) -> list[UUID]:
         query_bytes = struct.pack(f"{len(query_embedding)}f", *query_embedding)
         cursor = await self._conn.execute(
-            """
-            SELECT vec_mapping.uuid
-            FROM vec_knowledge
-            JOIN vec_mapping ON vec_knowledge.rowid = vec_mapping.rowid
-            WHERE vec_knowledge.embedding MATCH ?
+            f"""
+            SELECT {self._mapping_table}.uuid
+            FROM {self._vec_table}
+            JOIN {self._mapping_table} ON {self._vec_table}.rowid = {self._mapping_table}.rowid
+            WHERE {self._vec_table}.embedding MATCH ?
               AND k = ?
             ORDER BY distance
         """,
@@ -273,43 +279,71 @@ class VectorIndex(StoreBase):
 
 
 class TextIndex(StoreBase):
-    """Full-text search index using  FTS5."""
+    """Full-text search index using FTS5."""
+
+    def __init__(self, db_path: str, name: str = "knowledge"):
+        super().__init__(db_path)
+        self.name = name
+        self._mapping_table = f"fts_{name}_mapping"
+        self._fts_table = f"fts_{name}"
 
     async def _create_table(self):
         # Mapping table
-        await self._conn.execute("""
-            CREATE TABLE IF NOT EXISTS fts_mapping (
+        await self._conn.execute(f"""
+            CREATE TABLE IF NOT EXISTS {self._mapping_table} (
                 rowid INTEGER PRIMARY KEY AUTOINCREMENT,
                 uuid TEXT UNIQUE NOT NULL
             )
         """)
         # FTS5 virtual table
-        await self._conn.execute("""
-            CREATE VIRTUAL TABLE IF NOT EXISTS fts_knowledge
+        await self._conn.execute(f"""
+            CREATE VIRTUAL TABLE IF NOT EXISTS {self._fts_table}
             USING fts5(content)
         """)
         await self._conn.commit()
 
     async def add(self, uuid: UUID, text: str) -> None:
         # Insert into mapping to get rowid
-        cursor = await self._conn.execute("INSERT INTO fts_mapping (uuid) VALUES (?)", (str(uuid),))
+        cursor = await self._conn.execute(f"INSERT INTO {self._mapping_table} (uuid) VALUES (?)", (str(uuid),))
         rowid = cursor.lastrowid
 
         # Insert into FTS5 table
-        await self._conn.execute("INSERT INTO fts_knowledge (rowid, content) VALUES (?, ?)", (rowid, text))
+        await self._conn.execute(f"INSERT INTO {self._fts_table} (rowid, content) VALUES (?, ?)", (rowid, text))
         await self._conn.commit()
 
     async def search(self, query: str, top_k: int = 10) -> list[UUID]:
+        sanitized = self._sanitize_fts_query(query)
+        if not sanitized:
+            return []
+
         cursor = await self._conn.execute(
-            """
-            SELECT fts_mapping.uuid
-            FROM fts_knowledge
-            JOIN fts_mapping ON fts_knowledge.rowid = fts_mapping.rowid
-            WHERE fts_knowledge.content MATCH ?
+            f"""
+            SELECT {self._mapping_table}.uuid
+            FROM {self._fts_table}
+            JOIN {self._mapping_table} ON {self._fts_table}.rowid = {self._mapping_table}.rowid
+            WHERE {self._fts_table}.content MATCH ?
             ORDER BY rank
             LIMIT ?
         """,
-            (query, top_k),
+            (sanitized, top_k),
         )
         rows = await cursor.fetchall()
         return [UUID(row["uuid"]) for row in rows]
+
+    def _sanitize_fts_query(self, query: str) -> str:
+        """
+        Sanitize query for FTS5.
+
+        FTS5 has special syntax for operators like AND, OR, NOT, quotes, etc.
+        We escape by quoting each token as a literal phrase.
+        """
+        # Remove special FTS5 characters and split into words
+        # Keep only alphanumeric and spaces
+        cleaned = re.sub(r"[^\w\s]", " ", query)
+        words = cleaned.split()
+
+        if not words:
+            return ""
+
+        # Quote each word to treat as literal, join with space (implicit AND)
+        return " ".join(f'"{word}"' for word in words)

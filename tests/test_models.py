@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta, timezone
 
-from agentmemory.models import Episode, Message, MessageRole
+from agent_memory.models import Episode, Message, MessageRole
 
 
 def test_message_roundtrip():

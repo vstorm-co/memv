@@ -1,7 +1,8 @@
-from agentmemory import main
+from agent_memory import main
 
 
 def test_main(capsys):
     main()
     captured = capsys.readouterr()
-    assert captured.out == "Hello from agentmemory!\n"
+    assert "AgentMemory" in captured.out
+    assert "examples/" in captured.out
