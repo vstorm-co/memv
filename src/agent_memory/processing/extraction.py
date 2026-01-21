@@ -5,10 +5,19 @@ Nemori's core innovation: importance emerges from prediction error,
 not upfront LLM scoring.
 """
 
+import logging
+
 from pydantic import BaseModel, Field
 
-from agent_memory.models import Episode, ExtractedKnowledge, Message, SemanticKnowledge
+from agent_memory.models import Episode, ExtractedKnowledge, SemanticKnowledge
+from agent_memory.processing.prompts import (
+    cold_start_extraction_prompt,
+    extraction_prompt_with_prediction,
+    prediction_prompt,
+)
 from agent_memory.protocols import LLMClient
+
+logger = logging.getLogger(__name__)
 
 
 class ExtractionResponse(BaseModel):
@@ -23,8 +32,13 @@ class PredictCalibrateExtractor:
 
     Flow:
     1. Predict what the episode should contain (given existing knowledge)
-    2. Compare prediction vs raw messages
+    2. Compare prediction vs actual episode
     3. Extract only what we FAILED to predict
+
+    Key insight:
+    - Episode content is for RETRIEVAL (narrative is fine)
+    - Extraction source is ONLY original messages (ground truth)
+    - Cold start and prediction-based both use original_messages
     """
 
     def __init__(self, llm_client: LLMClient):
@@ -33,15 +47,13 @@ class PredictCalibrateExtractor:
     async def extract(
         self,
         episode: Episode,
-        raw_messages: list[Message],
         existing_knowledge: list[SemanticKnowledge],
     ) -> list[ExtractedKnowledge]:
         """
         Core predict-calibrate loop.
 
         Args:
-            episode: The episode to extract from
-            raw_messages: Original messages (ground truth)
+            episode: The episode to extract from (contains original_messages)
             existing_knowledge: Already-known facts to predict against
 
         Returns:
@@ -51,8 +63,9 @@ class PredictCalibrateExtractor:
         prediction = await self._predict(episode.title, existing_knowledge)
 
         # Stage 2: Calibrate
-        raw_content = self._format_messages(raw_messages)
-        novel = await self._extract_gaps(prediction, raw_content)
+        # Cold start (no prediction): use episode content + original messages
+        # With prediction: compare against original messages
+        novel = await self._extract_gaps(prediction, episode)
 
         return novel
 
@@ -72,29 +85,14 @@ class PredictCalibrateExtractor:
             return ""
 
         knowledge_text = self._format_knowledge(existing_knowledge)
-
-        prompt = f"""You have the following knowledge about the user:
-
-<existing_knowledge>
-{knowledge_text}
-</existing_knowledge>
-
-A conversation episode titled "{episode_title}" just occurred.
-
-Based on what you already know, predict what information, facts, or events this episode likely contains. Be specific about:
-- Topics the user probably discussed
-- Preferences or opinions they might have expressed
-- Decisions or plans they may have mentioned
-- Any updates to known facts
-
-Write your prediction as a list of expected statements."""
+        prompt = prediction_prompt(knowledge_text, episode_title)
 
         return await self.llm.generate(prompt)
 
     async def _extract_gaps(
         self,
         prediction: str,
-        raw_content: str,
+        episode: Episode,
     ) -> list[ExtractedKnowledge]:
         """
         Compare prediction to reality, extract what we missed.
@@ -102,67 +100,39 @@ Write your prediction as a list of expected statements."""
         Importance emerges here:
         - Predicted correctly → already known → don't extract
         - Prediction failed → novel information → extract
+
+        Both cold-start and prediction-based extraction use original_messages only.
+        Episode content is for retrieval, not extraction - it's LLM-generated
+        and can corrupt facts (wrong acronym expansions, transformed phrasing).
         """
         if not prediction:
-            # No prediction = extract everything notable
-            prompt = f"""Extract important knowledge from this conversation.
-
-<conversation>
-{raw_content}
-</conversation>
-
-Extract facts that would be useful to remember about the user, including:
-- Preferences, opinions, likes/dislikes
-- Facts about their life, work, relationships
-- Decisions, plans, or intentions
-- Any information with lasting relevance
-
-Do NOT extract:
-- Generic pleasantries or filler
-- Temporary/ephemeral information
-- Things that are obvious or common knowledge
-
-For each item, specify:
-- statement: A declarative sentence about what you learned
-- knowledge_type: "new" (since we have no prior knowledge)
-- temporal_info: When this became true, if mentioned (e.g., "since January 2024", "starting next month")
-- confidence: 0.0-1.0 how certain you are this is accurate"""
-
+            # Cold start: use original messages only (episode title for context)
+            logger.info(f"Cold start extraction for episode: {episode.title}")
+            prompt = cold_start_extraction_prompt(
+                episode.title,
+                episode.original_messages,
+            )
         else:
-            prompt = f"""Compare the predicted episode content against what actually happened.
+            # With prediction: compare against raw conversation
+            logger.info(f"Prediction-based extraction for episode: {episode.title}")
+            raw_content = self._format_messages(episode.original_messages)
+            prompt = extraction_prompt_with_prediction(prediction, raw_content)
 
-<prediction>
-{prediction}
-</prediction>
-
-<actual_conversation>
-{raw_content}
-</actual_conversation>
-
-Extract ONLY information that:
-1. Was NOT correctly predicted (novel/surprising)
-2. Updates or contradicts existing knowledge
-3. Contains new facts, preferences, or relationships
-
-Do NOT extract:
-- Information that was correctly anticipated
-- Generic/obvious statements
-- Information without lasting relevance
-
-For each extracted item, specify:
-- statement: A declarative sentence about what you learned
-- knowledge_type: "new" if entirely new, "update" if it refines existing knowledge, "contradiction" if it conflicts with what we knew
-- temporal_info: When this became true, if mentioned (e.g., "since January 2024", "starting next month")
-- confidence: 0.0-1.0 how certain you are this is accurate"""
-
+        logger.debug(f"Extraction prompt:\n{prompt[:500]}...")
         response = await self.llm.generate_structured(prompt, ExtractionResponse)
+        logger.info(f"Extraction result: {len(response.extracted)} items")
+        for item in response.extracted:
+            logger.info(f"  - {item.statement} (conf={item.confidence})")
         return response.extracted
 
-    def _format_messages(self, messages: list[Message]) -> str:
-        """Format raw messages for the prompt."""
+    def _format_messages(self, messages: list[dict]) -> str:
+        """Format original messages for the prompt, highlighting user statements."""
         lines = []
         for msg in messages:
-            lines.append(f"{msg.role.value}: {msg.content}")
+            if msg["role"] == "user":
+                lines.append(f">>> USER: {msg['content']}")
+            else:
+                lines.append(f"ASSISTANT: {msg['content']}")
         return "\n".join(lines)
 
     def _format_knowledge(self, knowledge: list[SemanticKnowledge]) -> str:

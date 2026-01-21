@@ -36,7 +36,7 @@ jobs:
           enable-cache: true
 
       - name: Type check
-        run: uv run pyright
+        run: uv run ty check src/
 
   test:
     runs-on: ubuntu-latest

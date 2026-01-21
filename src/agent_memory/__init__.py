@@ -9,7 +9,7 @@ Example usage:
     memory = Memory(
         db_path="memory.db",
         embedding_client=OpenAIEmbedAdapter(),
-        llm_client=PydanticAIAdapter("openai:gpt-4o-mini"),
+        llm_client=PydanticAIAdapter("openai:gpt-4.1-mini"),
     )
 
     async with memory:
@@ -19,6 +19,7 @@ Example usage:
         print(result.to_prompt())
 """
 
+from agent_memory.config import MemoryConfig
 from agent_memory.memory import Memory
 from agent_memory.models import (
     Episode,
@@ -33,6 +34,7 @@ from agent_memory.models import (
 
 __all__ = [
     "Memory",
+    "MemoryConfig",
     "Message",
     "MessageRole",
     "Episode",

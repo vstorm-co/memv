@@ -8,6 +8,7 @@ conversations into coherent episodes.
 from pydantic import BaseModel
 
 from agent_memory.models import Message
+from agent_memory.processing.prompts import boundary_detection_prompt
 from agent_memory.protocols import LLMClient
 
 
@@ -79,43 +80,12 @@ class BoundaryDetector:
         buffer: list[Message],
     ) -> BoundarySignal:
         """Use LLM to detect if new message crosses a topic boundary."""
-
-        # Format conversation context
         context = self._format_context(buffer)
         new_content = f"{new_message.role.value}: {new_message.content}"
 
-        prompt = f"""Analyze whether the new message represents a topic or intent shift from the current conversation.
-
-<current_conversation>
-{context}
-</current_conversation>
-
-<new_message>
-{new_content}
-</new_message>
-
-Evaluate these signals:
-1. **Topic shift**: Does the new message introduce a completely different subject?
-2. **Temporal markers**: Does it contain phrases like "by the way", "anyway", "on another note", "speaking of something else"?
-3. **Intent shift**: Does the user's goal change (e.g., from asking questions to making decisions, from one task to another)?
-4. **Contextual coherence**: How related is the new message to the ongoing discussion?
-
-Respond with JSON:
-{{
-    "is_boundary": true/false,
-    "confidence": 0.0-1.0,
-    "reason": "brief explanation"
-}}
-
-A boundary should be detected when there's a clear topic change, NOT for:
-- Follow-up questions on the same topic
-- Clarifications or elaborations
-- Natural conversation flow within the same subject
-"""
-
+        prompt = boundary_detection_prompt(context, new_content)
         response = await self.llm.generate(prompt)
 
-        # Parse response
         return self._parse_response(response)
 
     def _format_context(self, messages: list[Message], max_messages: int = 10) -> str:

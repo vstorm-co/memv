@@ -29,12 +29,45 @@ class Message(BaseModel):
 class Episode(BaseModel):
     id: UUID = Field(default_factory=uuid4)
     user_id: str = Field(..., description="The ID of user whose conversation this episode belongs to.")
-    message_ids: list[UUID] = Field(..., description="List of message ids of messages in the episode.")
     title: str = Field(..., description="The title of the episode.")
-    narrative: str = Field(..., description="The narrative of the episode.")
+    content: str = Field(..., description="Detailed third-person narrative with ALL important information from the conversation.")
+    original_messages: list[dict] = Field(..., description="Raw messages stored on the episode for extraction.")
     start_time: datetime = Field(..., description="Time when the episode started (UTC).")
     end_time: datetime = Field(..., description="Time when the episode ended (UTC).")
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), description="When the episode was created (UTC).")
+
+    @property
+    def message_count(self) -> int:
+        return len(self.original_messages)
+
+
+class BiTemporalValidity(BaseModel):
+    """
+    Bi-temporal validity tracking.
+
+    Event timeline (T): when the fact was/is true in the world
+    Transaction timeline (T'): when we learned/recorded it
+    """
+
+    # Event time - when fact is true in world
+    valid_at: datetime | None = Field(default=None, description="When fact became true (None = unknown/always)")
+    invalid_at: datetime | None = Field(default=None, description="When fact stopped being true (None = still true)")
+
+    # Transaction time - when we recorded it
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), description="When we learned this")
+    expired_at: datetime | None = Field(default=None, description="When we invalidated this record (None = current)")
+
+    def is_valid_at(self, event_time: datetime) -> bool:
+        """Check if fact was true at given event time."""
+        if self.valid_at and event_time < self.valid_at:
+            return False
+        if self.invalid_at and event_time >= self.invalid_at:
+            return False
+        return True
+
+    def is_current(self) -> bool:
+        """Check if this is the current (non-expired) record."""
+        return self.expired_at is None
 
 
 class SemanticKnowledge(BaseModel):
@@ -46,6 +79,27 @@ class SemanticKnowledge(BaseModel):
     )
     importance_score: float | None = Field(default=None, description="The importance score of the knowledge entry.")
     embedding: list[float] | None = Field(default=None, description="The embedding of the statement.")
+
+    # Bi-temporal validity fields
+    valid_at: datetime | None = Field(default=None, description="When fact became true in world (None = unknown/always)")
+    invalid_at: datetime | None = Field(default=None, description="When fact stopped being true (None = still true)")
+    expired_at: datetime | None = Field(default=None, description="When this record was superseded (None = current)")
+
+    def invalidate(self) -> None:
+        """Mark this knowledge as superseded."""
+        self.expired_at = datetime.now(timezone.utc)
+
+    def is_valid_at(self, event_time: datetime) -> bool:
+        """Check if fact was true at given event time."""
+        if self.valid_at and event_time < self.valid_at:
+            return False
+        if self.invalid_at and event_time >= self.invalid_at:
+            return False
+        return True
+
+    def is_current(self) -> bool:
+        """Check if this is the current (non-expired) record."""
+        return self.expired_at is None
 
 
 class RetrievalResult(BaseModel):
@@ -84,7 +138,7 @@ class RetrievalResult(BaseModel):
             for ep_id, knowledge_list in knowledge_by_episode.items():
                 ep = episode_map[ep_id]
                 lines.append(f"\n### {ep.title}")
-                lines.append(f"_{ep.narrative}_")
+                lines.append(f"_{ep.content}_")
                 lines.append("\nKey facts:")
                 for k in knowledge_list:
                     lines.append(f"- {k.statement}")
@@ -98,7 +152,7 @@ class RetrievalResult(BaseModel):
             lines.append("\n### Related Conversations")
             for ep in episodes_without:
                 lines.append(f"\n**{ep.title}**")
-                lines.append(f"_{ep.narrative}_")
+                lines.append(f"_{ep.content}_")
 
         # Orphan knowledge (episode not in results)
         if orphan_knowledge:

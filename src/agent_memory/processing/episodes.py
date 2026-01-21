@@ -8,6 +8,7 @@ with titles and third-person narratives.
 from datetime import datetime
 
 from agent_memory.models import Episode, Message
+from agent_memory.processing.prompts import episode_generation_prompt
 from agent_memory.protocols import LLMClient
 
 
@@ -38,7 +39,7 @@ class EpisodeGenerator:
             user_id: User ID for the episode
 
         Returns:
-            A structured Episode with title and narrative
+            A structured Episode with title, content, and original messages
         """
         if not messages:
             raise ValueError("Cannot generate episode from empty message list")
@@ -49,52 +50,29 @@ class EpisodeGenerator:
         # Get reference timestamp for resolving relative dates
         reference_time = messages[-1].sent_at
 
-        # Generate title and narrative
-        title, narrative = await self._generate_title_and_narrative(conversation, reference_time)
+        # Generate title and content
+        title, content = await self._generate_title_and_content(conversation, reference_time)
+
+        # Store raw messages on episode (Nemori pattern)
+        original_messages = [{"role": m.role.value, "content": m.content, "sent_at": m.sent_at.isoformat()} for m in messages]
 
         # Build episode
         return Episode(
             user_id=user_id,
-            message_ids=[m.id for m in messages],
             title=title,
-            narrative=narrative,
+            content=content,
+            original_messages=original_messages,
             start_time=messages[0].sent_at,
             end_time=messages[-1].sent_at,
         )
 
-    async def _generate_title_and_narrative(
+    async def _generate_title_and_content(
         self,
         conversation: str,
         reference_time: datetime,
     ) -> tuple[str, str]:
-        """Generate title and narrative via LLM."""
-
-        prompt = f"""Transform this conversation into a structured episodic memory.
-
-<conversation>
-{conversation}
-</conversation>
-
-<reference_timestamp>
-{reference_time.isoformat()}
-</reference_timestamp>
-
-Generate:
-1. **Title**: A concise phrase (3-7 words) capturing the episode's main theme
-2. **Narrative**: A brief third-person summary (1-3 sentences max) that:
-   - States only the key facts and outcomes
-   - Converts relative dates to absolute dates using the reference timestamp
-   - Omits pleasantries, filler, and obvious context
-
-Keep it concise. The narrative should be useful context, not a retelling.
-
-Respond with JSON:
-{{
-    "title": "...",
-    "narrative": "..."
-}}
-"""
-
+        """Generate title and content via LLM."""
+        prompt = episode_generation_prompt(conversation, reference_time.isoformat())
         response = await self.llm.generate(prompt)
         return self._parse_response(response)
 
@@ -107,7 +85,7 @@ Respond with JSON:
         return "\n".join(lines)
 
     def _parse_response(self, response: str) -> tuple[str, str]:
-        """Parse LLM response into title and narrative."""
+        """Parse LLM response into title and content."""
         import json
 
         try:
@@ -124,13 +102,13 @@ Respond with JSON:
             data = json.loads(response.strip())
 
             title = data.get("title", "Untitled Episode")
-            narrative = data.get("narrative", "")
+            content = data.get("content", "")
 
-            if not narrative:
-                raise ValueError("Empty narrative")
+            if not content:
+                raise ValueError("Empty content")
 
-            return title, narrative
+            return title, content
 
-        except (json.JSONDecodeError, ValueError, KeyError) as e:
-            # Fallback: use raw response as narrative
+        except (json.JSONDecodeError, ValueError, KeyError):
+            # Fallback: use raw response as content
             return "Conversation Episode", response.strip()

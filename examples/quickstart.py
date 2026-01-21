@@ -42,7 +42,7 @@ async def main():
         await memory.process(user_id)
 
         # Retrieve context for a new query
-        result = await memory.retrieve("What does the user do for work?")
+        result = await memory.retrieve("What does the user do for work?", user_id=user_id)
         print(result.to_prompt())
 
 

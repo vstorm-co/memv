@@ -135,19 +135,19 @@ async def main():
         # Query 1: Where does the user work?
         query1 = "Where does the user work?"
         print(f"\nQuery: '{query1}'")
-        result1 = await memory.retrieve(query1, top_k=3)
+        result1 = await memory.retrieve(query1, user_id=user_id, top_k=3)
         print(result1.to_prompt())
 
         # Query 2: What are the user's food preferences?
         query2 = "What are the user's dietary preferences?"
         print(f"\nQuery: '{query2}'")
-        result2 = await memory.retrieve(query2, top_k=3)
+        result2 = await memory.retrieve(query2, user_id=user_id, top_k=3)
         print(result2.to_prompt())
 
         # Query 3: Where did the user live before?
         query3 = "Where did the user move from?"
         print(f"\nQuery: '{query3}'")
-        result3 = await memory.retrieve(query3, top_k=3)
+        result3 = await memory.retrieve(query3, user_id=user_id, top_k=3)
         print(result3.to_prompt())
 
         # =====================================================================
@@ -161,7 +161,7 @@ async def main():
         new_user_message = "Can you suggest a lunch spot near my office?"
 
         # 1. Retrieve relevant context
-        context = await memory.retrieve(new_user_message, top_k=5)
+        context = await memory.retrieve(new_user_message, user_id=user_id, top_k=5)
 
         # 2. Build prompt with context
         system_prompt = f"""You are a helpful assistant with memory of past conversations.
