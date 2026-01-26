@@ -1,8 +1,12 @@
+"""Storage layer for agent_memory."""
+
 from agent_memory.storage.sqlite import (
     EpisodeStore,
     KnowledgeStore,
     MessageStore,
     StoreBase,
+    TextIndex,
+    VectorIndex,
 )
 
 __all__ = [
@@ -10,4 +14,6 @@ __all__ = [
     "MessageStore",
     "EpisodeStore",
     "KnowledgeStore",
+    "VectorIndex",
+    "TextIndex",
 ]

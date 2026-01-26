@@ -10,7 +10,7 @@ from agent_memory import Memory
 from agent_memory.embeddings import OpenAIEmbedAdapter
 from agent_memory.llm import PydanticAIAdapter
 from agent_memory.models import Episode, Message, MessageRole, SemanticKnowledge
-from agent_memory.storage.sqlite import EpisodeStore, KnowledgeStore, MessageStore, TextIndex, VectorIndex
+from agent_memory.storage import EpisodeStore, KnowledgeStore, MessageStore, TextIndex, VectorIndex
 
 
 class ConfirmDeleteScreen(ModalScreen[bool]):

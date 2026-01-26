@@ -8,7 +8,7 @@ from uuid import UUID
 
 from agent_memory.models import Episode, RetrievalResult, SemanticKnowledge
 from agent_memory.protocols import EmbeddingClient, EpisodeStore, KnowledgeStore
-from agent_memory.storage.sqlite import TextIndex, VectorIndex
+from agent_memory.storage import TextIndex, VectorIndex
 
 if TYPE_CHECKING:
     from agent_memory.cache import EmbeddingCache
