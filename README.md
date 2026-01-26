@@ -45,7 +45,7 @@ async def main():
         await memory.process(user_id)
 
         # Retrieve context for a new query
-        result = await memory.retrieve("What does the user do for work?")
+        result = await memory.retrieve("What does the user do for work?", user_id=user_id)
         print(result.to_prompt())
 
 
@@ -62,6 +62,11 @@ Requires `OPENAI_API_KEY` environment variable.
 - **Hybrid retrieval** - Combines vector similarity and BM25 text search with Reciprocal Rank Fusion
 - **Structured output** - `RetrievalResult.to_prompt()` formats context for LLM injection
 - **Async processing** - Non-blocking `process_async()` for background knowledge extraction
+- **Auto-processing** - Automatic background processing when message threshold is reached
+- **Bi-temporal validity** - Track when facts were true and when they were recorded
+- **Knowledge deduplication** - Automatic deduplication of semantically similar knowledge
+- **Episode merging** - Merge semantically similar episodes to reduce redundancy
+- **Embedding cache** - LRU cache for embeddings to reduce API calls
 - **Multi-provider LLM support** - OpenAI, Anthropic, Google, Groq via PydanticAI
 
 ## Documentation

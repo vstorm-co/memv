@@ -8,12 +8,34 @@ Main entry point for agent_memory. Coordinates storage, processing, and retrieva
 from agent_memory import Memory
 
 memory = Memory(
-    db_path: str,                           # SQLite database path
-    embedding_client: EmbeddingClient,      # Embedding provider
-    llm_client: LLMClient | None = None,    # Required for processing, optional for retrieval-only
-    embedding_dimensions: int = 1536,       # OpenAI text-embedding-3-small default
+    db_path: str | None = None,                    # SQLite path (default: .db/memory.db)
+    embedding_client: EmbeddingClient | None,      # Embedding provider
+    llm_client: LLMClient | None = None,           # Required for processing
+    embedding_dimensions: int | None = None,       # Vector dimensions (default: 1536)
+    config: MemoryConfig | None = None,            # Full config object
+    # Auto-processing
+    auto_process: bool | None = None,              # Enable auto background processing
+    batch_threshold: int | None = None,            # Messages before auto-trigger
+    max_retries: int | None = None,                # Retry attempts on failure
+    # Segmentation
+    segmentation_threshold: int | None = None,     # Max messages per episode
+    time_gap_minutes: int | None = None,           # Time gap for episode boundary
+    # Deduplication
+    enable_knowledge_dedup: bool | None = None,    # Deduplicate similar knowledge
+    knowledge_dedup_threshold: float | None = None,# Similarity threshold (0-1)
+    # Episode merging
+    enable_episode_merging: bool | None = None,    # Merge similar episodes
+    merge_similarity_threshold: float | None = None,
+    # Predict-calibrate
+    max_statements_for_prediction: int | None = None,
+    # Embedding cache
+    enable_embedding_cache: bool | None = None,
+    embedding_cache_size: int | None = None,
+    embedding_cache_ttl_seconds: int | None = None,
 )
 ```
+
+Individual params override values in `config`. See `MemoryConfig` for defaults.
 
 ### Context Manager
 
@@ -78,16 +100,17 @@ task = memory.process_async("user-123")
 count = await task.wait()
 ```
 
-#### `retrieve(query, top_k=10, vector_weight=0.5, include_episodes=True) -> RetrievalResult`
+#### `retrieve(query, user_id, top_k=10, vector_weight=0.5, include_episodes=True) -> RetrievalResult`
 
 Retrieve relevant knowledge and episodes for a query.
 
 ```python
 result = await memory.retrieve(
     query="What does the user do?",
+    user_id="user-123",        # Required: filter to this user only
     top_k=10,                  # Results per category
     vector_weight=0.5,         # Balance: 1.0=vector only, 0.0=text only
-    include_episodes=True,     # Include episode narratives in results
+    include_episodes=True,     # Include episodes in results
 )
 ```
 
@@ -97,6 +120,31 @@ Lower-level method for explicit control over what gets processed. Groups message
 
 ```python
 count = await memory.process_messages(messages, "user-123")
+```
+
+#### `flush(user_id: str) -> int`
+
+Force processing of buffered messages regardless of threshold. Waits for completion.
+
+```python
+count = await memory.flush("user-123")
+```
+
+#### `wait_for_processing(user_id: str, timeout: float | None = None) -> int`
+
+Wait for background processing to complete.
+
+```python
+count = await memory.wait_for_processing("user-123", timeout=30)
+```
+
+#### `clear_user(user_id: str) -> dict[str, int]`
+
+Delete all data for a user: messages, episodes, knowledge, and indices.
+
+```python
+counts = await memory.clear_user("user-123")
+# Returns: {"messages": 42, "episodes": 3, "knowledge": 15, ...}
 ```
 
 ---
@@ -129,26 +177,28 @@ MessageRole.SYSTEM
 
 ### Episode
 
-Conversation segment with title and narrative.
+Conversation segment with title and content summary.
 
 ```python
 from agent_memory import Episode
 
 episode = Episode(
-    id: UUID,                  # Auto-generated
-    user_id: str,              # User identifier
-    message_ids: list[UUID],   # Messages in this episode
-    title: str,                # Episode title
-    narrative: str,            # Third-person narrative summary
-    start_time: datetime,      # Episode start (UTC)
-    end_time: datetime,        # Episode end (UTC)
-    created_at: datetime,      # When created (UTC)
+    id: UUID,                      # Auto-generated
+    user_id: str,                  # User identifier
+    title: str,                    # Episode title
+    content: str,                  # Third-person narrative summary
+    original_messages: list[dict], # Raw messages stored on the episode
+    start_time: datetime,          # Episode start (UTC)
+    end_time: datetime,            # Episode end (UTC)
+    created_at: datetime,          # When created (UTC)
 )
+
+episode.message_count  # Number of messages in episode
 ```
 
 ### SemanticKnowledge
 
-Extracted fact with embedding.
+Extracted fact with embedding and bi-temporal validity.
 
 ```python
 from agent_memory import SemanticKnowledge
@@ -160,7 +210,16 @@ knowledge = SemanticKnowledge(
     created_at: datetime,              # When extracted (UTC)
     importance_score: float | None,    # Confidence/importance
     embedding: list[float] | None,     # Vector embedding
+    # Bi-temporal validity
+    valid_at: datetime | None,         # When fact became true (None = unknown)
+    invalid_at: datetime | None,       # When fact stopped being true (None = still true)
+    expired_at: datetime | None,       # When record was superseded (None = current)
 )
+
+# Methods
+knowledge.is_current()               # Check if this is the current record
+knowledge.is_valid_at(event_time)    # Check if fact was true at given time
+knowledge.invalidate()               # Mark as superseded
 ```
 
 ### RetrievalResult
@@ -283,6 +342,46 @@ class LLMClient(Protocol):
     async def generate_structured(self, prompt: str, response_model: type[T]) -> T:
         """Generate structured response matching Pydantic model."""
         ...
+```
+
+---
+
+## MemoryConfig
+
+Centralized configuration with sensible defaults.
+
+```python
+from agent_memory import MemoryConfig
+
+config = MemoryConfig(
+    # Database
+    db_path: str = ".db/memory.db",
+    embedding_dimensions: int = 1536,
+    # Processing triggers
+    auto_process: bool = False,
+    batch_threshold: int = 10,
+    max_retries: int = 1,
+    # Segmentation
+    segmentation_threshold: int = 20,
+    time_gap_minutes: int = 30,
+    # Episode merging
+    enable_episode_merging: bool = True,
+    merge_similarity_threshold: float = 0.9,
+    # Knowledge deduplication
+    enable_knowledge_dedup: bool = True,
+    knowledge_dedup_threshold: float = 0.8,
+    # Predict-calibrate
+    max_statements_for_prediction: int = 10,
+    # Retrieval
+    search_top_k_episodes: int = 10,
+    search_top_k_knowledge: int = 10,
+    # Embedding cache
+    enable_embedding_cache: bool = True,
+    embedding_cache_size: int = 1000,
+    embedding_cache_ttl_seconds: int = 600,
+)
+
+memory = Memory(config=config, embedding_client=embedder, llm_client=llm)
 ```
 
 ---

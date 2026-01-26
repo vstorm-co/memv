@@ -39,7 +39,7 @@ Each boundary creates a new episode. This groups related messages for coherent k
 
 `EpisodeGenerator` transforms message groups into structured episodes:
 - **Title**: Concise episode label
-- **Narrative**: Third-person summary of what happened
+- **Content**: Third-person narrative summary of what happened
 
 Episodes are indexed for retrieval alongside extracted knowledge.
 
@@ -60,7 +60,15 @@ This naturally focuses on:
 
 Without explicit importance scoring, importance emerges from prediction error.
 
-### 5. Knowledge Storage
+### 5. Episode Merging (Optional)
+
+When `enable_episode_merging=True`, newly created episodes are compared against recent episodes. If similarity exceeds `merge_similarity_threshold`, episodes are merged to reduce redundancy.
+
+### 6. Knowledge Deduplication (Optional)
+
+When `enable_knowledge_dedup=True`, extracted knowledge is compared against existing knowledge. Semantically similar statements (above `knowledge_dedup_threshold`) are deduplicated.
+
+### 7. Knowledge Storage
 
 Extracted `SemanticKnowledge` entries are:
 - Stored in `KnowledgeStore`
@@ -74,7 +82,7 @@ All data lives in SQLite with specialized indices.
 ### Stores
 
 - **MessageStore** - Raw messages with temporal queries
-- **EpisodeStore** - Episode metadata and narratives
+- **EpisodeStore** - Episode metadata and content
 - **KnowledgeStore** - Extracted knowledge statements
 
 ### Indices
@@ -88,9 +96,21 @@ Each index exists separately for knowledge and episodes, enabling targeted retri
 
 - UUID primary keys stored as TEXT
 - Datetimes as Unix timestamps (INTEGER)
-- Complex fields (message_ids, embeddings) as JSON
+- Complex fields (original_messages, embeddings) as JSON
 - Async context managers for connection management
 - Transaction support via `async with store.transaction()`
+
+### Bi-Temporal Validity
+
+Knowledge entries track two timelines:
+- **Event time** (`valid_at`/`invalid_at`): When the fact was/is true in the world
+- **Transaction time** (`created_at`/`expired_at`): When we learned/recorded it
+
+This enables point-in-time queries ("what did we know on date X?") and fact lifecycle tracking.
+
+### Embedding Cache
+
+Optional LRU cache with TTL for query embeddings. Reduces API calls for repeated or similar queries.
 
 ## Retrieval
 
@@ -129,7 +149,7 @@ RetrievalResult
 ## Relevant Context
 
 ### User's Work Background
-_The user discussed their job at Anthropic._
+_The user discussed their job at Anthropic during an initial introduction._
 
 Key facts:
 - The user works at Anthropic as a researcher
@@ -143,20 +163,36 @@ Key facts:
 
 ```
 src/agent_memory/
-├── __init__.py          # Public exports
-├── memory.py            # Memory class (main API)
-├── models.py            # Data models (Message, Episode, etc.)
-├── protocols.py         # EmbeddingClient, LLMClient protocols
-├── embeddings/          # Embedding adapters
-│   └── openai.py        # OpenAI embeddings
-├── llm/                 # LLM adapters
-│   └── pydantic_ai.py   # PydanticAI multi-provider
-├── processing/          # Processing components
-│   ├── boundary.py      # BoundaryDetector
-│   ├── episodes.py      # EpisodeGenerator
-│   └── extraction.py    # PredictCalibrateExtractor
-├── retrieval/           # Retrieval components
-│   └── retriever.py     # Hybrid search with RRF
-└── storage/             # Storage layer
-    └── sqlite.py        # SQLite stores and indices
+├── __init__.py              # Public exports
+├── config.py                # MemoryConfig dataclass
+├── models.py                # Data models (Message, Episode, etc.)
+├── protocols.py             # EmbeddingClient, LLMClient protocols
+├── cache.py                 # Embedding cache (LRU with TTL)
+├── memory/                  # Memory class (main API)
+│   ├── memory.py            # Memory class
+│   ├── _api.py              # Public method implementations
+│   ├── _lifecycle.py        # Connection/component lifecycle
+│   ├── _pipeline.py         # Processing pipeline
+│   └── _task_manager.py     # Async task management
+├── embeddings/              # Embedding adapters
+│   └── openai.py            # OpenAI embeddings
+├── llm/                     # LLM adapters
+│   └── pydantic_ai.py       # PydanticAI multi-provider
+├── processing/              # Processing components
+│   ├── boundary.py          # BoundaryDetector
+│   ├── batch_segmenter.py   # Batch message segmentation
+│   ├── episodes.py          # EpisodeGenerator
+│   ├── episode_merger.py    # Merge similar episodes
+│   ├── extraction.py        # PredictCalibrateExtractor
+│   └── prompts.py           # LLM prompt templates
+├── retrieval/               # Retrieval components
+│   └── retriever.py         # Hybrid search with RRF
+└── storage/                 # Storage layer
+    └── sqlite/              # SQLite implementation
+        ├── _base.py         # Base store class
+        ├── _messages.py     # MessageStore
+        ├── _episodes.py     # EpisodeStore
+        ├── _knowledge.py    # KnowledgeStore
+        ├── _vector_index.py # VectorIndex (sqlite-vec)
+        └── _text_index.py   # TextIndex (FTS5)
 ```

@@ -64,7 +64,7 @@ async def main():
         print(f"Extracted {count} knowledge entries")
 
         # Retrieve relevant context for a query
-        result = await memory.retrieve("What does the user do for work?")
+        result = await memory.retrieve("What does the user do for work?", user_id=user_id)
         print(result.to_prompt())
 
 
@@ -169,7 +169,7 @@ class MemoryAgent:
 
     async def chat(self, user_message: str) -> str:
         # 1. Retrieve relevant context
-        context = await self.memory.retrieve(user_message, top_k=5)
+        context = await self.memory.retrieve(user_message, user_id=self.user_id, top_k=5)
 
         # 2. Build prompt with memory context
         system_prompt = f"""You are a helpful assistant.

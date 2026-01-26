@@ -9,13 +9,13 @@ Example usage:
     memory = Memory(
         db_path="memory.db",
         embedding_client=OpenAIEmbedAdapter(),
-        llm_client=PydanticAIAdapter("openai:gpt-4.1-mini"),
+        llm_client=PydanticAIAdapter("openai:gpt-4o-mini"),
     )
 
     async with memory:
         await memory.add_exchange(user_id, user_msg, assistant_msg)
         await memory.process(user_id)
-        result = await memory.retrieve("query")
+        result = await memory.retrieve("query", user_id=user_id)
         print(result.to_prompt())
 """
 
