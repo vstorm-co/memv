@@ -3,6 +3,9 @@ name: Claude Code Review
 on:
   pull_request:
     types: [opened, synchronize]
+    branches:
+      - main
+      - develop
     # Optional: Only run on specific file changes
     # paths:
     #   - "src/**/*.ts"
