@@ -74,6 +74,8 @@ async def retrieve(
     top_k: int = 10,
     vector_weight: float = 0.5,
     include_episodes: bool = True,
+    at_time: datetime | None = None,
+    include_expired: bool = False,
 ) -> RetrievalResult:
     """
     Retrieve relevant knowledge and episodes for a query.
@@ -85,6 +87,8 @@ async def retrieve(
         top_k: Number of results to return per category
         vector_weight: Balance between vector (1.0) and text (0.0) search
         include_episodes: Whether to search and return episodes
+        at_time: If provided, filter knowledge by validity at this event time
+        include_expired: If True, include superseded (expired) records
 
     Returns:
         RetrievalResult containing knowledge and episodes.
@@ -99,6 +103,8 @@ async def retrieve(
         top_k=top_k,
         vector_weight=vector_weight,
         include_episodes=include_episodes,
+        at_time=at_time,
+        include_expired=include_expired,
     )
 
 
