@@ -176,6 +176,8 @@ class Memory:
         top_k: int = 10,
         vector_weight: float = 0.5,
         include_episodes: bool = True,
+        at_time: datetime | None = None,
+        include_expired: bool = False,
     ) -> RetrievalResult:
         """
         Retrieve relevant knowledge and episodes for a query.
@@ -186,6 +188,10 @@ class Memory:
             top_k: Number of results to return per category
             vector_weight: Balance between vector (1.0) and text (0.0) search
             include_episodes: Whether to search and return episodes
+            at_time: If provided, filter knowledge by validity at this event time.
+                     Returns only knowledge that was valid at that point in time.
+            include_expired: If True, include superseded (expired) records.
+                            Useful for viewing full history of a fact.
 
         Returns:
             RetrievalResult containing knowledge and episodes.
@@ -198,6 +204,8 @@ class Memory:
             top_k,
             vector_weight,
             include_episodes,
+            at_time,
+            include_expired,
         )
 
     async def process(self, user_id: str) -> int:
