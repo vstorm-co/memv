@@ -2,10 +2,10 @@
 
 ## Memory
 
-Main entry point for agent_memory. Coordinates storage, processing, and retrieval.
+Main entry point for memvee. Coordinates storage, processing, and retrieval.
 
 ```python
-from agent_memory import Memory
+from memvee import Memory
 
 memory = Memory(
     db_path: str | None = None,                    # SQLite path (default: .db/memory.db)
@@ -154,7 +154,7 @@ counts = await memory.clear_user("user-123")
 ### Message
 
 ```python
-from agent_memory import Message, MessageRole
+from memvee import Message, MessageRole
 
 message = Message(
     id: UUID,              # Auto-generated
@@ -168,7 +168,7 @@ message = Message(
 ### MessageRole
 
 ```python
-from agent_memory import MessageRole
+from memvee import MessageRole
 
 MessageRole.USER
 MessageRole.ASSISTANT
@@ -180,7 +180,7 @@ MessageRole.SYSTEM
 Conversation segment with title and content summary.
 
 ```python
-from agent_memory import Episode
+from memvee import Episode
 
 episode = Episode(
     id: UUID,                      # Auto-generated
@@ -201,7 +201,7 @@ episode.message_count  # Number of messages in episode
 Extracted fact with embedding and bi-temporal validity.
 
 ```python
-from agent_memory import SemanticKnowledge
+from memvee import SemanticKnowledge
 
 knowledge = SemanticKnowledge(
     id: UUID,                          # Auto-generated
@@ -227,7 +227,7 @@ knowledge.invalidate()               # Mark as superseded
 Container for retrieval results.
 
 ```python
-from agent_memory import RetrievalResult
+from memvee import RetrievalResult
 
 result = RetrievalResult(
     retrieved_knowledge: list[SemanticKnowledge],
@@ -258,7 +258,7 @@ text = result.as_text()
 Handle for async processing.
 
 ```python
-from agent_memory import ProcessTask, ProcessStatus
+from memvee import ProcessTask, ProcessStatus
 
 task = memory.process_async(user_id)
 
@@ -280,7 +280,7 @@ count = await task.wait()
 ### ProcessStatus
 
 ```python
-from agent_memory import ProcessStatus
+from memvee import ProcessStatus
 
 ProcessStatus.PENDING
 ProcessStatus.RUNNING
@@ -293,7 +293,7 @@ ProcessStatus.FAILED
 Output of predict-calibrate extraction (internal but exported).
 
 ```python
-from agent_memory import ExtractedKnowledge
+from memvee import ExtractedKnowledge
 
 extracted = ExtractedKnowledge(
     statement: str,                                    # The knowledge statement
@@ -312,7 +312,7 @@ For implementing custom providers.
 ### EmbeddingClient
 
 ```python
-from agent_memory.protocols import EmbeddingClient
+from memvee.protocols import EmbeddingClient
 
 
 class EmbeddingClient(Protocol):
@@ -328,7 +328,7 @@ class EmbeddingClient(Protocol):
 ### LLMClient
 
 ```python
-from agent_memory.protocols import LLMClient
+from memvee.protocols import LLMClient
 from typing import TypeVar
 
 T = TypeVar("T")
@@ -351,7 +351,7 @@ class LLMClient(Protocol):
 Centralized configuration with sensible defaults.
 
 ```python
-from agent_memory import MemoryConfig
+from memvee import MemoryConfig
 
 config = MemoryConfig(
     # Database
@@ -391,7 +391,7 @@ memory = Memory(config=config, embedding_client=embedder, llm_client=llm)
 ### OpenAIEmbedAdapter
 
 ```python
-from agent_memory.embeddings import OpenAIEmbedAdapter
+from memvee.embeddings import OpenAIEmbedAdapter
 
 embedder = OpenAIEmbedAdapter(
     api_key: str | None = None,              # Uses OPENAI_API_KEY env var if None
@@ -404,7 +404,7 @@ embedder = OpenAIEmbedAdapter(
 Multi-provider LLM adapter via PydanticAI.
 
 ```python
-from agent_memory.llm import PydanticAIAdapter
+from memvee.llm import PydanticAIAdapter
 
 llm = PydanticAIAdapter(
     model: str = "openai:gpt-4o-mini",
