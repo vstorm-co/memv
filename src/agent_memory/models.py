@@ -168,7 +168,9 @@ class ExtractedKnowledge(BaseModel):
 
     statement: str
     knowledge_type: Literal["new", "update", "contradiction"]
-    temporal_info: str | None = None  # "since January 2024", "until next week"
+    temporal_info: str | None = None  # Human-readable: "since January 2024", "until next week"
+    valid_at: datetime | None = None  # Parsed: when fact became true (ISO format from LLM)
+    invalid_at: datetime | None = None  # Parsed: when fact stops being true (ISO format from LLM)
     confidence: float = 1.0
 
 

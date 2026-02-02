@@ -184,7 +184,7 @@ Based on what you already know, predict what information, facts, or events this 
 Write your prediction as a list of expected statements."""
 
 
-def cold_start_extraction_prompt(episode_title: str, original_messages: list[dict]) -> str:
+def cold_start_extraction_prompt(episode_title: str, original_messages: list[dict], reference_timestamp: str | None = None) -> str:
     """
     Prompt for extracting knowledge when no prior knowledge exists (cold start).
 
@@ -195,7 +195,17 @@ def cold_start_extraction_prompt(episode_title: str, original_messages: list[dic
         f">>> USER: {m['content']}" if m["role"] == "user" else f"ASSISTANT: {m['content']}" for m in original_messages
     )
 
+    timestamp_section = ""
+    if reference_timestamp:
+        timestamp_section = f"""
+<reference_timestamp>
+{reference_timestamp}
+</reference_timestamp>
+Use this to resolve relative dates ("yesterday", "next week", "last month") into absolute ISO 8601 dates.
+"""
+
     return f"""Extract HIGH-VALUE, PERSISTENT knowledge from this conversation.
+{timestamp_section}
 
 **CRITICAL RULE: Extract ONLY from lines starting with ">>> USER:"**
 - These are the user's actual words - the ONLY source of truth
@@ -249,16 +259,27 @@ Topic: {episode_title}
 For each extracted item, specify:
 - statement: A clean, declarative fact about the user (third-person: "User...", not "I...")
 - knowledge_type: "new"
-- temporal_info: When this became true, if mentioned
+- temporal_info: Human-readable description if mentioned ("since January 2024", "until next month")
+- valid_at: ISO 8601 datetime when fact became true, or null if unknown/always true (e.g., "2024-01-01T00:00:00Z")
+- invalid_at: ISO 8601 datetime when fact stops being true, or null if still true (e.g., "2024-12-31T23:59:59Z")
 - confidence: 0.0-1.0
 
 Extract ALL concrete facts. Multiple extractions from one episode is expected."""
 
 
-def extraction_prompt_with_prediction(prediction: str, conversation: str) -> str:
+def extraction_prompt_with_prediction(prediction: str, conversation: str, reference_timestamp: str | None = None) -> str:
     """Prompt for extracting knowledge by comparing prediction vs reality."""
-    return f"""Extract valuable knowledge by comparing actual conversation with predicted content.
+    timestamp_section = ""
+    if reference_timestamp:
+        timestamp_section = f"""
+<reference_timestamp>
+{reference_timestamp}
+</reference_timestamp>
+Use this to resolve relative dates ("yesterday", "next week", "last month") into absolute ISO 8601 dates.
+"""
 
+    return f"""Extract valuable knowledge by comparing actual conversation with predicted content.
+{timestamp_section}
 **CRITICAL: Extract ONLY from lines starting with ">>> USER:" - these are the user's actual words.**
 **IGNORE all ASSISTANT lines - those are suggestions, not user facts.**
 
@@ -307,7 +328,9 @@ Focus on SPECIFIC DETAILS even if the general topic was predicted:
 For each extracted item, specify:
 - statement: A fact the USER explicitly stated (not assistant suggestions)
 - knowledge_type: "new" if entirely new, "update" if refines existing, "contradiction" if conflicts
-- temporal_info: When this became true, if mentioned
+- temporal_info: Human-readable description if mentioned ("since January 2024", "until next month")
+- valid_at: ISO 8601 datetime when fact became true, or null if unknown/always true (e.g., "2024-01-01T00:00:00Z")
+- invalid_at: ISO 8601 datetime when fact stops being true, or null if still true (e.g., "2024-12-31T23:59:59Z")
 - confidence: 0.0-1.0
 
 Return EMPTY LIST if no concrete facts found beyond the prediction."""

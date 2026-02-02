@@ -189,6 +189,8 @@ class Pipeline:
                 source_episode_id=episode.id,
                 importance_score=item.confidence,
                 embedding=embedding,
+                valid_at=item.valid_at,
+                invalid_at=item.invalid_at,
             )
 
             await self._lc.knowledge.add(knowledge)

@@ -105,18 +105,22 @@ class PredictCalibrateExtractor:
         Episode content is for retrieval, not extraction - it's LLM-generated
         and can corrupt facts (wrong acronym expansions, transformed phrasing).
         """
+        # Use episode end_time as reference for resolving relative dates
+        reference_timestamp = episode.end_time.isoformat() if episode.end_time else None
+
         if not prediction:
             # Cold start: use original messages only (episode title for context)
             logger.info(f"Cold start extraction for episode: {episode.title}")
             prompt = cold_start_extraction_prompt(
                 episode.title,
                 episode.original_messages,
+                reference_timestamp,
             )
         else:
             # With prediction: compare against raw conversation
             logger.info(f"Prediction-based extraction for episode: {episode.title}")
             raw_content = self._format_messages(episode.original_messages)
-            prompt = extraction_prompt_with_prediction(prediction, raw_content)
+            prompt = extraction_prompt_with_prediction(prediction, raw_content, reference_timestamp)
 
         logger.debug(f"Extraction prompt:\n{prompt[:500]}...")
         response = await self.llm.generate_structured(prompt, ExtractionResponse)
