@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 
-from agent_memory.models import (
+from memvee.models import (
     BiTemporalValidity,
     Episode,
     ExtractedKnowledge,
