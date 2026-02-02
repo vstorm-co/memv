@@ -7,16 +7,16 @@ AgentMemory extracts and retrieves knowledge from conversations using a predict-
 ## Installation
 
 ```bash
-pip install agent-memory
+pip install memvee
 ```
 
 ## Quick Start
 
 ```python
 import asyncio
-from agent_memory import Memory
-from agent_memory.embeddings import OpenAIEmbedAdapter
-from agent_memory.llm import PydanticAIAdapter
+from memvee import Memory
+from memvee.embeddings import OpenAIEmbedAdapter
+from memvee.llm import PydanticAIAdapter
 
 
 async def main():
