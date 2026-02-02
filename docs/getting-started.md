@@ -8,7 +8,7 @@
 ## Installation
 
 ```bash
-pip install agent-memory
+pip install memvee
 ```
 
 For development:
@@ -31,9 +31,9 @@ export OPENAI_API_KEY=sk-...
 
 ```python
 import asyncio
-from agent_memory import Memory
-from agent_memory.embeddings import OpenAIEmbedAdapter
-from agent_memory.llm import PydanticAIAdapter
+from memvee import Memory
+from memvee.embeddings import OpenAIEmbedAdapter
+from memvee.llm import PydanticAIAdapter
 
 
 async def main():
@@ -77,7 +77,7 @@ if __name__ == "__main__":
 ### Anthropic
 
 ```python
-from agent_memory.llm import PydanticAIAdapter
+from memvee.llm import PydanticAIAdapter
 
 llm = PydanticAIAdapter("anthropic:claude-3-5-sonnet-latest")
 ```
@@ -107,7 +107,7 @@ See [PydanticAI models](https://ai.pydantic.dev/models/) for the full list.
 Implement the `EmbeddingClient` protocol:
 
 ```python
-from agent_memory.protocols import EmbeddingClient
+from memvee.protocols import EmbeddingClient
 
 
 class MyEmbedder:
@@ -132,7 +132,7 @@ memory = Memory(
 Implement the `LLMClient` protocol:
 
 ```python
-from agent_memory.protocols import LLMClient
+from memvee.protocols import LLMClient
 from typing import TypeVar
 
 T = TypeVar("T")

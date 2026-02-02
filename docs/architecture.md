@@ -162,7 +162,7 @@ Key facts:
 ## Module Structure
 
 ```
-src/agent_memory/
+src/memvee/
 ├── __init__.py              # Public exports
 ├── config.py                # MemoryConfig dataclass
 ├── models.py                # Data models (Message, Episode, etc.)
