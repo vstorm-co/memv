@@ -14,7 +14,7 @@ pip install memvee
 For development:
 
 ```bash
-git clone https://github.com/vstorm-co/agentmemory.git
+git clone git@github.com:vstorm-co/memvee.git 
 cd agentmemory
 uv sync
 ```

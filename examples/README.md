@@ -32,22 +32,76 @@ uv run python examples/demo.py
 
 ### Agent Integration (`agent_integration.py`)
 
-Interactive chat agent with long-term memory. Shows the pattern for integrating Agent Memory into a real agent:
-
-1. User sends message
-2. Retrieve relevant context from memory
-3. Generate response with context
-4. Store exchange in memory
-5. Periodically process to extract knowledge
+Interactive chat agent with long-term memory using raw OpenAI client.
 
 ```bash
 uv run python examples/agent_integration.py
 ```
 
-Commands in the chat:
-- `quit` - exit
-- `process` - force memory processing
-- `debug` - show current memory contents
+Commands: `quit`, `flush`, `debug`
+
+### PydanticAI Agent (`pydantic_ai_agent.py`)
+
+Shows how to integrate memvee into a PydanticAI agent. Demonstrates the idiomatic pattern:
+
+1. Retrieve context from memory before agent runs
+2. Inject context via PydanticAI dependency system
+3. Store exchange after response
+4. Auto-processing in background
+
+```bash
+uv run python examples/pydantic_ai_agent.py
+```
+
+Commands: `quit`, `flush`, `debug`
+
+### LangGraph Agent (`langgraph_agent.py`)
+
+Integrates memvee into a LangGraph `StateGraph`. Retrieves context, injects it as a system message in the graph state, and invokes the compiled graph.
+
+```bash
+uv run python examples/langgraph_agent.py
+```
+
+Requires: `pip install langgraph langchain-openai`
+
+Commands: `quit`, `flush`, `debug`
+
+### LlamaIndex Agent (`llamaindex_agent.py`)
+
+Integrates memvee into a LlamaIndex `SimpleChatEngine`. Retrieves context and passes it as a system prompt prefix.
+
+```bash
+uv run python examples/llamaindex_agent.py
+```
+
+Requires: `pip install llama-index llama-index-llms-openai`
+
+Commands: `quit`, `flush`, `debug`
+
+### CrewAI Agent (`crewai_agent.py`)
+
+Integrates memvee into a CrewAI agent. Retrieves context and injects it into the agent's backstory before each task.
+
+```bash
+uv run python examples/crewai_agent.py
+```
+
+Requires: `pip install crewai`
+
+Commands: `quit`, `flush`, `debug`
+
+### AutoGen Agent (`autogen_agent.py`)
+
+Integrates memvee into a Microsoft AutoGen `AssistantAgent`. Retrieves context and injects it into the agent's system message.
+
+```bash
+uv run python examples/autogen_agent.py
+```
+
+Requires: `pip install autogen-agentchat autogen-ext[openai]`
+
+Commands: `quit`, `flush`, `debug`
 
 ## Core Concepts
 

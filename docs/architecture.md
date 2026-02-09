@@ -5,7 +5,7 @@
 ```
 User messages → add_exchange() → Message buffer
                                       ↓
-                               process()
+                                  process()
                                       ↓
                     Episode segmentation (BoundaryDetector)
                                       ↓
