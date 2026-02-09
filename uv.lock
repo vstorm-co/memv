@@ -2298,6 +2298,7 @@ examples = [
     { name = "langgraph" },
     { name = "llama-index" },
     { name = "llama-index-llms-openai" },
+    { name = "typer" },
 ]
 
 [package.metadata]
@@ -2327,6 +2328,7 @@ examples = [
     { name = "langgraph", specifier = ">=1.0" },
     { name = "llama-index", specifier = ">=0.14" },
     { name = "llama-index-llms-openai", specifier = ">=0.6" },
+    { name = "typer", specifier = ">=0.15" },
 ]
 
 [[package]]

@@ -21,12 +21,18 @@ Requires:
 import asyncio
 from datetime import datetime, timezone
 
+import typer
 from autogen_agentchat.agents import AssistantAgent
 from autogen_ext.models.openai import OpenAIChatCompletionClient
+from rich.console import Console
+from rich.panel import Panel
 
 from memvee import Memory
 from memvee.embeddings import OpenAIEmbedAdapter
 from memvee.llm import PydanticAIAdapter
+
+console = Console()
+app = typer.Typer()
 
 BASE_SYSTEM_PROMPT = (
     "You are a helpful assistant with memory of past conversations. "
@@ -80,11 +86,8 @@ class MemoryAgent:
 
 
 async def main():
-    print("=" * 60)
-    print("AutoGen Agent with memvee Memory")
-    print("=" * 60)
-    print("Commands: 'quit', 'flush' (force processing), 'debug' (show memory)")
-    print("=" * 60)
+    console.print(Panel.fit("AutoGen Agent with memvee Memory", style="bold"))
+    console.print("[dim]Commands: quit, flush, debug[/dim]\n")
 
     memory = Memory(
         db_path=".db/autogen_agent.db",
@@ -99,7 +102,7 @@ async def main():
 
         while True:
             try:
-                user_input = input("\nYou: ").strip()
+                user_input = console.input("[bold cyan]You:[/] ").strip()
             except (EOFError, KeyboardInterrupt):
                 break
 
@@ -107,27 +110,34 @@ async def main():
                 continue
 
             if user_input.lower() == "quit":
-                count = await memory.flush(agent.user_id)
+                with console.status("[dim]Processing memories…[/dim]"):
+                    count = await memory.flush(agent.user_id)
                 if count > 0:
-                    print(f"[Flushed {count} knowledge entries]")
+                    console.print(f"[dim][Flushed {count} knowledge entries][/dim]")
                 break
 
             if user_input.lower() == "flush":
-                count = await memory.flush(agent.user_id)
-                print(f"[Flushed: {count} knowledge entries extracted]")
+                with console.status("[dim]Processing memories…[/dim]"):
+                    count = await memory.flush(agent.user_id)
+                console.print(f"[dim][Flushed: {count} knowledge entries extracted][/dim]")
                 continue
 
             if user_input.lower() == "debug":
                 result = await memory.retrieve("*", user_id=agent.user_id, top_k=10)
-                print("\n[Memory contents]")
-                print(result.to_prompt())
+                console.print(Panel(result.to_prompt() or "[dim]No memories yet[/dim]", title="Memory Contents"))
                 continue
 
             response = await agent.chat(user_input)
-            print(f"\nAssistant: {response}")
+            console.print(f"\n[bold green]Assistant:[/bold green] {response}\n")
 
-    print("\n[Session ended]")
+    console.print("[dim][Session ended][/dim]")
+
+
+@app.command()
+def run() -> None:
+    """AutoGen Agent with memvee Memory."""
+    asyncio.run(main())
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    app()
