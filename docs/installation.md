@@ -38,23 +38,21 @@ Other providers require their own keys:
 
 ```bash
 git clone https://github.com/vstorm-co/memv.git
-cd agentmemory
-uv sync
-uv run pre-commit install
+cd memv
+make install
 ```
 
 ### Running Tests
 
 ```bash
 uv run pytest
-uv run pytest tests/test_storage.py::test_name  # Specific test
+uv run pytest tests/test_models.py::test_name  # Specific test
 ```
 
 ### Code Quality
 
 ```bash
-uv run ruff format src/
-uv run ruff check --select I --fix src/
-uv run pyright
+make lint
+make typecheck
 uv run pre-commit run --all-files
 ```
