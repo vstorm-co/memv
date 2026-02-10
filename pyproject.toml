@@ -1,5 +1,5 @@
 [project]
-name = "memvee"
+name = "memv"
 version = "0.1.0"
 description = "Structured, temporal memory for AI agents."
 readme = "README.md"
@@ -17,7 +17,7 @@ dependencies = [
 ]
 
 [project.scripts]
-memvee = "memvee:main"
+memv = "memv:main"
 
 [build-system]
 requires = ["uv_build>=0.9.21,<0.10.0"]

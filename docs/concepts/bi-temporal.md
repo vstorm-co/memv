@@ -1,13 +1,13 @@
 # Bi-Temporal Validity
 
-memvee tracks knowledge across two independent timelines. Based on [Graphiti](https://github.com/getzep/graphiti).
+memv tracks knowledge across two independent timelines. Based on [Graphiti](https://github.com/getzep/graphiti).
 
 ## Two Timelines
 
 | Timeline | Fields | Question it answers |
 |----------|--------|-------------------|
 | **Event time** | `valid_at` / `invalid_at` | When was this fact true in the world? |
-| **Transaction time** | `created_at` / `expired_at` | When did memvee learn/record this? |
+| **Transaction time** | `created_at` / `expired_at` | When did memv learn/record this? |
 
 ### Example
 

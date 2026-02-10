@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 
-from memvee.models import (
+from memv.models import (
     BiTemporalValidity,
     Episode,
     ExtractedKnowledge,

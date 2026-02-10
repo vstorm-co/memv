@@ -1,8 +1,8 @@
 """
-PydanticAI Agent with memvee Memory
+PydanticAI Agent with memv Memory
 ===================================
 
-Shows how to integrate memvee into a PydanticAI agent for persistent memory.
+Shows how to integrate memv into a PydanticAI agent for persistent memory.
 
 The pattern:
 1. Retrieve relevant context from memory before agent runs
@@ -26,9 +26,9 @@ from pydantic_ai import Agent, RunContext
 from rich.console import Console
 from rich.panel import Panel
 
-from memvee import Memory
-from memvee.embeddings import OpenAIEmbedAdapter
-from memvee.llm import PydanticAIAdapter
+from memv import Memory
+from memv.embeddings import OpenAIEmbedAdapter
+from memv.llm import PydanticAIAdapter
 
 console = Console()
 app = typer.Typer()
@@ -66,7 +66,7 @@ def create_agent() -> Agent[MemoryContext, str]:
 
 
 class MemoryAgent:
-    """PydanticAI agent with persistent memory via memvee."""
+    """PydanticAI agent with persistent memory via memv."""
 
     def __init__(self, memory: Memory, user_id: str = "default-user"):
         self.memory = memory
@@ -102,7 +102,7 @@ class MemoryAgent:
 
 
 async def main():
-    console.print(Panel.fit("PydanticAI Agent with memvee Memory", style="bold"))
+    console.print(Panel.fit("PydanticAI Agent with memv Memory", style="bold"))
     console.print("[dim]Commands: quit, flush, debug[/dim]\n")
 
     # Initialize memory with auto-processing
@@ -152,7 +152,7 @@ async def main():
 
 @app.command()
 def run() -> None:
-    """PydanticAI Agent with memvee Memory."""
+    """PydanticAI Agent with memv Memory."""
     asyncio.run(main())
 
 

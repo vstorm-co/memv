@@ -1,6 +1,6 @@
 # Core Concepts
 
-memvee processes conversations through a pipeline that turns raw messages into retrievable knowledge.
+memv processes conversations through a pipeline that turns raw messages into retrievable knowledge.
 
 ```mermaid
 flowchart TD
@@ -21,16 +21,16 @@ flowchart TD
 
 2. **[Episodes](episodes.md)** — Messages are segmented into coherent conversation groups based on topic shifts, intent changes, and time gaps. Each episode gets a narrative summary.
 
-3. **[Predict-Calibrate](predict-calibrate.md)** — For each episode, memvee predicts what it should contain based on existing knowledge, then extracts only what was unpredicted. This is the core innovation.
+3. **[Predict-Calibrate](predict-calibrate.md)** — For each episode, memv predicts what it should contain based on existing knowledge, then extracts only what was unpredicted. This is the core innovation.
 
-4. **[Bi-Temporal Validity](bi-temporal.md)** — Extracted knowledge tracks both when facts were true in the world and when memvee learned them. Contradictions invalidate old facts rather than deleting them.
+4. **[Bi-Temporal Validity](bi-temporal.md)** — Extracted knowledge tracks both when facts were true in the world and when memv learned them. Contradictions invalidate old facts rather than deleting them.
 
 5. **[Retrieval](retrieval.md)** — Queries run through both vector similarity and BM25 text search, merged with Reciprocal Rank Fusion.
 
 ## Module Structure
 
 ```
-src/memvee/
+src/memv/
 ├── memory/           # Memory class (main API)
 ├── processing/       # BoundaryDetector, EpisodeGenerator, PredictCalibrateExtractor
 ├── retrieval/        # Hybrid search with RRF

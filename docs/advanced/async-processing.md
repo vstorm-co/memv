@@ -1,6 +1,6 @@
 # Async Processing
 
-memvee supports both synchronous and non-blocking processing modes.
+memv supports both synchronous and non-blocking processing modes.
 
 ## Synchronous Processing
 

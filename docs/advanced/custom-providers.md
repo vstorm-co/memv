@@ -1,11 +1,11 @@
 # Custom Providers
 
-memvee uses two protocols for external services: `EmbeddingClient` and `LLMClient`. Implement them to use any provider.
+memv uses two protocols for external services: `EmbeddingClient` and `LLMClient`. Implement them to use any provider.
 
 ## EmbeddingClient
 
 ```python
-from memvee.protocols import EmbeddingClient
+from memv.protocols import EmbeddingClient
 
 
 class MyEmbedder:
@@ -59,7 +59,7 @@ memory = Memory(
 ## LLMClient
 
 ```python
-from memvee.protocols import LLMClient
+from memv.protocols import LLMClient
 from typing import TypeVar
 
 T = TypeVar("T")
@@ -75,7 +75,7 @@ class MyLLM:
         ...
 ```
 
-`generate_structured` must return an instance of the given Pydantic model. This is used for episode generation and knowledge extraction where memvee needs structured output.
+`generate_structured` must return an instance of the given Pydantic model. This is used for episode generation and knowledge extraction where memv needs structured output.
 
 ### Example: Anthropic (direct)
 
@@ -112,12 +112,12 @@ class AnthropicLLM:
 
 ## Built-in Adapters
 
-memvee ships with two adapters that cover most use cases:
+memv ships with two adapters that cover most use cases:
 
 ### OpenAIEmbedAdapter
 
 ```python
-from memvee.embeddings import OpenAIEmbedAdapter
+from memv.embeddings import OpenAIEmbedAdapter
 
 embedder = OpenAIEmbedAdapter(
     api_key=None,                          # Uses OPENAI_API_KEY env var
@@ -130,7 +130,7 @@ embedder = OpenAIEmbedAdapter(
 Multi-provider LLM via PydanticAI. Supports OpenAI, Anthropic, Google, Groq, and more.
 
 ```python
-from memvee.llm import PydanticAIAdapter
+from memv.llm import PydanticAIAdapter
 
 llm = PydanticAIAdapter("openai:gpt-4o-mini")
 llm = PydanticAIAdapter("anthropic:claude-3-5-sonnet-latest")

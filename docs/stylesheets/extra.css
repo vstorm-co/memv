@@ -1,5 +1,5 @@
 /* ============================================
-   memvee Documentation Styles
+   memv Documentation Styles
    Colors matched to banner: dark slate + steel blue
    ============================================ */
 
@@ -45,7 +45,7 @@
   color: var(--md-primary-fg-color--light);
 }
 
-.md-content h1[id="memvee"] {
+.md-content h1[id="memv"] {
   text-align: center;
   font-size: 2.5rem;
   margin-top: 0;

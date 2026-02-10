@@ -1,8 +1,8 @@
-site_name: memvee
+site_name: memv
 site_description: Structured, temporal memory for AI agents.
-site_url: https://vstorm-co.github.io/memvee/
-repo_url: https://github.com/vstorm-co/memvee
-repo_name: vstorm-co/memvee
+site_url: https://vstorm-co.github.io/memv/
+repo_url: https://github.com/vstorm-co/memv
+repo_name: vstorm-co/memv
 
 theme:
   name: material
@@ -66,7 +66,7 @@ theme:
     - announce.dismiss
 
 nav:
-  - memvee: index.md
+  - memv: index.md
   - Installation: installation.md
   - Getting Started: getting-started.md
   - Core Concepts:
@@ -151,10 +151,10 @@ markdown_extensions:
 extra:
   social:
     - icon: fontawesome/brands/github
-      link: https://github.com/vstorm-co/memvee
+      link: https://github.com/vstorm-co/memv
       name: GitHub
     - icon: fontawesome/brands/python
-      link: https://pypi.org/project/memvee/
+      link: https://pypi.org/project/memv/
       name: PyPI
   generator: false
 

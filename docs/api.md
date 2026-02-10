@@ -2,11 +2,11 @@
 
 ## Core
 
-::: memvee.Memory
+::: memv.Memory
     options:
       heading_level: 3
 
-::: memvee.MemoryConfig
+::: memv.MemoryConfig
     options:
       heading_level: 3
 
@@ -14,35 +14,35 @@
 
 ## Models
 
-::: memvee.models.Message
+::: memv.models.Message
     options:
       heading_level: 3
 
-::: memvee.models.MessageRole
+::: memv.models.MessageRole
     options:
       heading_level: 3
 
-::: memvee.models.Episode
+::: memv.models.Episode
     options:
       heading_level: 3
 
-::: memvee.models.SemanticKnowledge
+::: memv.models.SemanticKnowledge
     options:
       heading_level: 3
 
-::: memvee.models.RetrievalResult
+::: memv.models.RetrievalResult
     options:
       heading_level: 3
 
-::: memvee.models.ProcessTask
+::: memv.models.ProcessTask
     options:
       heading_level: 3
 
-::: memvee.models.ProcessStatus
+::: memv.models.ProcessStatus
     options:
       heading_level: 3
 
-::: memvee.models.ExtractedKnowledge
+::: memv.models.ExtractedKnowledge
     options:
       heading_level: 3
 
@@ -50,11 +50,11 @@
 
 ## Protocols
 
-::: memvee.protocols.EmbeddingClient
+::: memv.protocols.EmbeddingClient
     options:
       heading_level: 3
 
-::: memvee.protocols.LLMClient
+::: memv.protocols.LLMClient
     options:
       heading_level: 3
 
@@ -62,10 +62,10 @@
 
 ## Built-in Adapters
 
-::: memvee.embeddings.OpenAIEmbedAdapter
+::: memv.embeddings.OpenAIEmbedAdapter
     options:
       heading_level: 3
 
-::: memvee.llm.PydanticAIAdapter
+::: memv.llm.PydanticAIAdapter
     options:
       heading_level: 3

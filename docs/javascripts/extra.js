@@ -1,1 +1,1 @@
-// Extra JavaScript for memvee documentation
+// Extra JavaScript for memv documentation

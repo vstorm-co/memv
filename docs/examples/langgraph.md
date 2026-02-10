@@ -1,6 +1,6 @@
 # LangGraph
 
-Integrates memvee into a LangGraph `StateGraph`. Memory context is injected as a system message in the graph state.
+Integrates memv into a LangGraph `StateGraph`. Memory context is injected as a system message in the graph state.
 
 ```bash
 uv run python examples/langgraph_agent.py
@@ -63,7 +63,7 @@ async def chat(self, user_message: str) -> str:
 ## Notes
 
 - Memory context is rebuilt per turn — each invocation gets fresh context from retrieval
-- The graph itself is stateless with respect to memory; state management lives in memvee
+- The graph itself is stateless with respect to memory; state management lives in memv
 - For multi-node graphs, you could retrieve context in a dedicated node before the chatbot node
 
-See the [full source](https://github.com/vstorm-co/memvee/blob/main/examples/langgraph_agent.py) for the complete interactive example.
+See the [full source](https://github.com/vstorm-co/memv/blob/main/examples/langgraph_agent.py) for the complete interactive example.

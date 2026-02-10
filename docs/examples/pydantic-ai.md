@@ -1,6 +1,6 @@
 # PydanticAI
 
-Integrates memvee into a PydanticAI agent using the dependency injection system.
+Integrates memv into a PydanticAI agent using the dependency injection system.
 
 ```bash
 uv run python examples/pydantic_ai_agent.py
@@ -60,4 +60,4 @@ async def chat(self, user_message: str) -> str:
 
 PydanticAI's `@agent.system_prompt` decorator cleanly separates memory injection from the base system prompt. The dependency system means you don't need global state or closures — context flows through the framework.
 
-See the [full source](https://github.com/vstorm-co/memvee/blob/main/examples/pydantic_ai_agent.py) for the complete interactive example.
+See the [full source](https://github.com/vstorm-co/memv/blob/main/examples/pydantic_ai_agent.py) for the complete interactive example.

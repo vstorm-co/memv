@@ -2,7 +2,7 @@
 Agent Integration Example
 =========================
 
-Shows how to integrate memvee into a simple conversational agent.
+Shows how to integrate memv into a simple conversational agent.
 
 With auto_process enabled (Nemori-style), the pattern is:
 1. User sends message
@@ -22,9 +22,9 @@ from openai import AsyncOpenAI
 from rich.console import Console
 from rich.panel import Panel
 
-from memvee import Memory
-from memvee.embeddings import OpenAIEmbedAdapter
-from memvee.llm import PydanticAIAdapter
+from memv import Memory
+from memv.embeddings import OpenAIEmbedAdapter
+from memv.llm import PydanticAIAdapter
 
 console = Console()
 app = typer.Typer()
@@ -83,7 +83,7 @@ async def main():
 
     # Initialize memory with auto-processing enabled
     memory = Memory(
-        db_path=".db/memvee.db",
+        db_path=".db/memv.db",
         embedding_client=OpenAIEmbedAdapter(),
         llm_client=PydanticAIAdapter("openai:gpt-4.1-mini"),
         auto_process=True,  # Enable automatic background processing
@@ -138,7 +138,7 @@ async def main():
 
 @app.command()
 def run() -> None:
-    """Memory Agent with memvee Memory."""
+    """Memory Agent with memv Memory."""
     asyncio.run(main())
 
 

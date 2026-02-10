@@ -42,7 +42,7 @@ Commands: `quit`, `flush`, `debug`
 
 ### PydanticAI Agent (`pydantic_ai_agent.py`)
 
-Shows how to integrate memvee into a PydanticAI agent. Demonstrates the idiomatic pattern:
+Shows how to integrate memv into a PydanticAI agent. Demonstrates the idiomatic pattern:
 
 1. Retrieve context from memory before agent runs
 2. Inject context via PydanticAI dependency system
@@ -57,7 +57,7 @@ Commands: `quit`, `flush`, `debug`
 
 ### LangGraph Agent (`langgraph_agent.py`)
 
-Integrates memvee into a LangGraph `StateGraph`. Retrieves context, injects it as a system message in the graph state, and invokes the compiled graph.
+Integrates memv into a LangGraph `StateGraph`. Retrieves context, injects it as a system message in the graph state, and invokes the compiled graph.
 
 ```bash
 uv run python examples/langgraph_agent.py
@@ -69,7 +69,7 @@ Commands: `quit`, `flush`, `debug`
 
 ### LlamaIndex Agent (`llamaindex_agent.py`)
 
-Integrates memvee into a LlamaIndex `SimpleChatEngine`. Retrieves context and passes it as a system prompt prefix.
+Integrates memv into a LlamaIndex `SimpleChatEngine`. Retrieves context and passes it as a system prompt prefix.
 
 ```bash
 uv run python examples/llamaindex_agent.py
@@ -81,7 +81,7 @@ Commands: `quit`, `flush`, `debug`
 
 ### CrewAI Agent (`crewai_agent.py`)
 
-Integrates memvee into a CrewAI agent. Retrieves context and injects it into the agent's backstory before each task.
+Integrates memv into a CrewAI agent. Retrieves context and injects it into the agent's backstory before each task.
 
 ```bash
 uv run python examples/crewai_agent.py
@@ -93,7 +93,7 @@ Commands: `quit`, `flush`, `debug`
 
 ### AutoGen Agent (`autogen_agent.py`)
 
-Integrates memvee into a Microsoft AutoGen `AssistantAgent`. Retrieves context and injects it into the agent's system message.
+Integrates memv into a Microsoft AutoGen `AssistantAgent`. Retrieves context and injects it into the agent's system message.
 
 ```bash
 uv run python examples/autogen_agent.py

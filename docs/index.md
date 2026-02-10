@@ -1,15 +1,15 @@
 <p align="center">
-  <img src="assets/banner.png" alt="memvee" width="600">
+  <img src="assets/banner.png" alt="memv" width="600">
 </p>
 
-<h1 align="center">memvee</h1>
+<h1 align="center">memv</h1>
 
 <p align="center">
   <em>Structured, temporal memory for AI agents</em>
 </p>
 
 <p align="center">
-  <a href="https://pypi.org/project/memvee/"><img src="https://img.shields.io/pypi/v/memvee.svg" alt="PyPI"></a>
+  <a href="https://pypi.org/project/memv/"><img src="https://img.shields.io/pypi/v/memv.svg" alt="PyPI"></a>
   <a href="https://www.python.org/"><img src="https://img.shields.io/badge/python-3.13+-blue.svg" alt="Python 3.13+"></a>
   <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/license-MIT-green" alt="License"></a>
   <a href="https://github.com/pydantic/pydantic-ai"><img src="https://img.shields.io/badge/Powered%20by-Pydantic%20AI-E92063?logo=pydantic&logoColor=white" alt="Pydantic AI"></a>
@@ -17,11 +17,11 @@
 
 ---
 
-**memvee** extracts knowledge from conversations using a predict-calibrate approach: importance emerges from prediction error, not upfront LLM scoring.
+**memv** extracts knowledge from conversations using a predict-calibrate approach: importance emerges from prediction error, not upfront LLM scoring.
 
-## Why memvee?
+## Why memv?
 
-| Typical Approach | memvee |
+| Typical Approach | memv |
 |------------------|--------|
 | Extract all facts upfront | Extract only what we **failed to predict** |
 | Overwrite old facts | **Invalidate** with temporal bounds |
@@ -31,13 +31,13 @@
 ## Quick Start
 
 ```bash
-pip install memvee
+pip install memv
 ```
 
 ```python
-from memvee import Memory
-from memvee.embeddings import OpenAIEmbedAdapter
-from memvee.llm import PydanticAIAdapter
+from memv import Memory
+from memv.embeddings import OpenAIEmbedAdapter
+from memv.llm import PydanticAIAdapter
 
 memory = Memory(
     db_path="memory.db",
@@ -87,7 +87,7 @@ See [Core Concepts](concepts/index.md) for the full breakdown.
 
 ## Framework Integration
 
-memvee works with any agent framework:
+memv works with any agent framework:
 
 ```python
 class MyAgent:
@@ -115,6 +115,6 @@ See [Examples](examples/index.md) for integrations with PydanticAI, LangGraph, L
 
 - [Installation](installation.md) — Get up and running
 - [Getting Started](getting-started.md) — First example and agent pattern
-- [Core Concepts](concepts/index.md) — How memvee works under the hood
+- [Core Concepts](concepts/index.md) — How memv works under the hood
 - [API Reference](api.md) — Complete API documentation
 - [Examples](examples/index.md) — Framework integrations

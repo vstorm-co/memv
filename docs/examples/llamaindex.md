@@ -1,6 +1,6 @@
 # LlamaIndex
 
-Integrates memvee into a LlamaIndex `SimpleChatEngine`. Memory context is passed as a system prompt prefix.
+Integrates memv into a LlamaIndex `SimpleChatEngine`. Memory context is passed as a system prompt prefix.
 
 ```bash
 uv run python examples/llamaindex_agent.py
@@ -54,6 +54,6 @@ async def chat(self, user_message: str) -> str:
 
 - A fresh `SimpleChatEngine` is created per turn so the system prompt reflects current memory state
 - For more complex setups (RAG pipelines, query engines), inject memory context the same way — as part of the system prompt or as a separate context node
-- LlamaIndex has its own memory abstractions, but memvee's predict-calibrate extraction provides a different approach to what gets remembered
+- LlamaIndex has its own memory abstractions, but memv's predict-calibrate extraction provides a different approach to what gets remembered
 
-See the [full source](https://github.com/vstorm-co/memvee/blob/main/examples/llamaindex_agent.py) for the complete interactive example.
+See the [full source](https://github.com/vstorm-co/memv/blob/main/examples/llamaindex_agent.py) for the complete interactive example.

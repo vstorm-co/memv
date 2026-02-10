@@ -1,6 +1,6 @@
 # Predict-Calibrate Extraction
 
-The core innovation in memvee. Based on [Nemori](https://arxiv.org/abs/2508.03341).
+The core innovation in memv. Based on [Nemori](https://arxiv.org/abs/2508.03341).
 
 ## The Problem
 

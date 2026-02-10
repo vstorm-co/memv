@@ -1,8 +1,8 @@
 """
-LlamaIndex Agent with memvee Memory
+LlamaIndex Agent with memv Memory
 =====================================
 
-Shows how to integrate memvee into a LlamaIndex chat engine for persistent memory.
+Shows how to integrate memv into a LlamaIndex chat engine for persistent memory.
 
 The pattern:
 1. Retrieve relevant context from memory before chat
@@ -27,9 +27,9 @@ from llama_index.llms.openai import OpenAI
 from rich.console import Console
 from rich.panel import Panel
 
-from memvee import Memory
-from memvee.embeddings import OpenAIEmbedAdapter
-from memvee.llm import PydanticAIAdapter
+from memv import Memory
+from memv.embeddings import OpenAIEmbedAdapter
+from memv.llm import PydanticAIAdapter
 
 console = Console()
 app = typer.Typer()
@@ -43,7 +43,7 @@ BASE_SYSTEM_PROMPT = (
 
 
 class MemoryAgent:
-    """LlamaIndex chat agent with persistent memory via memvee."""
+    """LlamaIndex chat agent with persistent memory via memv."""
 
     def __init__(self, memory: Memory, user_id: str = "default-user"):
         self.memory = memory
@@ -85,7 +85,7 @@ class MemoryAgent:
 
 
 async def main():
-    console.print(Panel.fit("LlamaIndex Agent with memvee Memory", style="bold"))
+    console.print(Panel.fit("LlamaIndex Agent with memv Memory", style="bold"))
     console.print("[dim]Commands: quit, flush, debug[/dim]\n")
 
     memory = Memory(
@@ -134,7 +134,7 @@ async def main():
 
 @app.command()
 def run() -> None:
-    """LlamaIndex Agent with memvee Memory."""
+    """LlamaIndex Agent with memv Memory."""
     asyncio.run(main())
 
 

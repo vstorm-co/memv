@@ -1,8 +1,8 @@
 """
-LangGraph Agent with memvee Memory
+LangGraph Agent with memv Memory
 ====================================
 
-Shows how to integrate memvee into a LangGraph StateGraph for persistent memory.
+Shows how to integrate memv into a LangGraph StateGraph for persistent memory.
 
 The pattern:
 1. Retrieve relevant context from memory before graph invocation
@@ -29,9 +29,9 @@ from langgraph.graph.message import add_messages
 from rich.console import Console
 from rich.panel import Panel
 
-from memvee import Memory
-from memvee.embeddings import OpenAIEmbedAdapter
-from memvee.llm import PydanticAIAdapter
+from memv import Memory
+from memv.embeddings import OpenAIEmbedAdapter
+from memv.llm import PydanticAIAdapter
 
 console = Console()
 app = typer.Typer()
@@ -62,7 +62,7 @@ def build_graph(llm: ChatOpenAI) -> StateGraph:
 
 
 class MemoryAgent:
-    """LangGraph agent with persistent memory via memvee."""
+    """LangGraph agent with persistent memory via memv."""
 
     def __init__(self, memory: Memory, user_id: str = "default-user"):
         self.memory = memory
@@ -106,7 +106,7 @@ class MemoryAgent:
 
 
 async def main():
-    console.print(Panel.fit("LangGraph Agent with memvee Memory", style="bold"))
+    console.print(Panel.fit("LangGraph Agent with memv Memory", style="bold"))
     console.print("[dim]Commands: quit, flush, debug[/dim]\n")
 
     memory = Memory(
@@ -155,7 +155,7 @@ async def main():
 
 @app.command()
 def run() -> None:
-    """LangGraph Agent with memvee Memory."""
+    """LangGraph Agent with memv Memory."""
     asyncio.run(main())
 
 

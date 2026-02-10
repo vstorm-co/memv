@@ -5,7 +5,7 @@ All configuration lives in `MemoryConfig`. Pass it to `Memory()` directly, or ov
 ## MemoryConfig
 
 ```python
-from memvee import Memory, MemoryConfig
+from memv import Memory, MemoryConfig
 
 config = MemoryConfig(
     max_statements_for_prediction=5,

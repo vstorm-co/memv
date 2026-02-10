@@ -1,6 +1,6 @@
 # CrewAI
 
-Integrates memvee into a CrewAI agent. Memory context is injected into the agent's backstory before each task.
+Integrates memv into a CrewAI agent. Memory context is injected into the agent's backstory before each task.
 
 ```bash
 uv run python examples/crewai_agent.py
@@ -72,4 +72,4 @@ async def chat(self, user_message: str) -> str:
 - A fresh agent/crew is created per turn to inject updated memory context
 - For multi-agent crews, you could have a dedicated "memory retrieval" agent that feeds context to other agents
 
-See the [full source](https://github.com/vstorm-co/memvee/blob/main/examples/crewai_agent.py) for the complete interactive example.
+See the [full source](https://github.com/vstorm-co/memv/blob/main/examples/crewai_agent.py) for the complete interactive example.

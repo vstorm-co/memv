@@ -1,6 +1,6 @@
 # Retrieval
 
-memvee uses hybrid search combining vector similarity and BM25 text search, merged with Reciprocal Rank Fusion.
+memv uses hybrid search combining vector similarity and BM25 text search, merged with Reciprocal Rank Fusion.
 
 ## How It Works
 

@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="assets/banner.png" alt="memvee" width="600">
+  <img src="assets/banner.png" alt="memv" width="600">
 </p>
 
-<h1 align="center">memvee</h1>
+<h1 align="center">memv</h1>
 
 <p align="center">
   <b>Structured, Temporal Memory for AI Agents</b>
@@ -11,11 +11,11 @@
 <p align="center">
   <a href="docs/getting-started.md">Docs</a> •
   <a href="examples/">Examples</a> •
-  <a href="https://pypi.org/project/memvee/">PyPI</a>
+  <a href="https://pypi.org/project/memv/">PyPI</a>
 </p>
 
 <p align="center">
-  <a href="https://pypi.org/project/memvee/"><img src="https://img.shields.io/pypi/v/memvee.svg" alt="PyPI version"></a>
+  <a href="https://pypi.org/project/memv/"><img src="https://img.shields.io/pypi/v/memv.svg" alt="PyPI version"></a>
   <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/python-3.13+-blue.svg" alt="Python 3.13+"></a>
   <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT"></a>
   <a href="https://github.com/pydantic/pydantic-ai"><img src="https://img.shields.io/badge/Powered%20by-Pydantic%20AI-E92063?logo=pydantic&logoColor=white" alt="Pydantic AI"></a>
@@ -33,11 +33,11 @@
 
 ---
 
-## Why memvee?
+## Why memv?
 
-Most memory systems extract everything and hope retrieval sorts it out. memvee is different:
+Most memory systems extract everything and hope retrieval sorts it out. memv is different:
 
-| Typical Approach | memvee |
+| Typical Approach | memv |
 |------------------|--------|
 | Extract all facts upfront | Extract only what we **failed to predict** |
 | Overwrite old facts | **Invalidate** with temporal bounds |
@@ -51,13 +51,13 @@ Most memory systems extract everything and hope retrieval sorts it out. memvee i
 ## Get Started in 60 Seconds
 
 ```bash
-pip install memvee
+pip install memv
 ```
 
 ```python
-from memvee import Memory
-from memvee.embeddings import OpenAIEmbedAdapter
-from memvee.llm import PydanticAIAdapter
+from memv import Memory
+from memv.embeddings import OpenAIEmbedAdapter
+from memv.llm import PydanticAIAdapter
 
 memory = Memory(
     db_path="memory.db",
@@ -120,7 +120,7 @@ async with memory:
 
 ## Point-in-Time Queries
 
-memvee's bi-temporal model lets you query knowledge as it was at any moment:
+memv's bi-temporal model lets you query knowledge as it was at any moment:
 
 ```python
 from datetime import datetime
@@ -169,7 +169,7 @@ Knowledge (extracted facts with bi-temporal validity)
 
 ## Framework Integration
 
-memvee works with any agent framework:
+memv works with any agent framework:
 
 ```python
 class MyAgent:

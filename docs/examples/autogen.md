@@ -1,6 +1,6 @@
 # AutoGen
 
-Integrates memvee into a Microsoft AutoGen `AssistantAgent`. Memory context is injected into the agent's system message.
+Integrates memv into a Microsoft AutoGen `AssistantAgent`. Memory context is injected into the agent's system message.
 
 ```bash
 uv run python examples/autogen_agent.py
@@ -61,6 +61,6 @@ async def chat(self, user_message: str) -> str:
 
 - The `model_client` is reused across turns; only the agent is recreated with fresh context
 - For multi-agent conversations (GroupChat), inject memory context into the initiating agent's system message
-- AutoGen's built-in memory/teachability features work differently — memvee provides predict-calibrate extraction as an alternative
+- AutoGen's built-in memory/teachability features work differently — memv provides predict-calibrate extraction as an alternative
 
-See the [full source](https://github.com/vstorm-co/memvee/blob/main/examples/autogen_agent.py) for the complete interactive example.
+See the [full source](https://github.com/vstorm-co/memv/blob/main/examples/autogen_agent.py) for the complete interactive example.

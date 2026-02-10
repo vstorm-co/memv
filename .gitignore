@@ -231,7 +231,3 @@ pyrightconfig.json
 
 # Memory databases
 .db/
-
-# Local roadmap files
-ROADMAP.md
-agentmemory-roadmap.md

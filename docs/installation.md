@@ -8,13 +8,13 @@
 ## Install from PyPI
 
 ```bash
-pip install memvee
+pip install memv
 ```
 
 Or with uv:
 
 ```bash
-uv add memvee
+uv add memv
 ```
 
 ## Environment Variables
@@ -37,7 +37,7 @@ Other providers require their own keys:
 ## Development Setup
 
 ```bash
-git clone https://github.com/vstorm-co/memvee.git
+git clone https://github.com/vstorm-co/memv.git
 cd agentmemory
 uv sync
 uv run pre-commit install

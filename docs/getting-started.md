@@ -4,9 +4,9 @@
 
 ```python
 import asyncio
-from memvee import Memory
-from memvee.embeddings import OpenAIEmbedAdapter
-from memvee.llm import PydanticAIAdapter
+from memv import Memory
+from memv.embeddings import OpenAIEmbedAdapter
+from memv.llm import PydanticAIAdapter
 
 
 async def main():
@@ -44,7 +44,7 @@ if __name__ == "__main__":
     asyncio.run(main())
 ```
 
-That's it. After `process()`, memvee has:
+That's it. After `process()`, memv has:
 
 1. Segmented the messages into an episode
 2. Generated a narrative summary
@@ -95,7 +95,7 @@ The LLM adapter supports multiple providers via PydanticAI:
 === "OpenAI"
 
     ```python
-    from memvee.llm import PydanticAIAdapter
+    from memv.llm import PydanticAIAdapter
 
     llm = PydanticAIAdapter("openai:gpt-4o-mini")
     ```
@@ -103,7 +103,7 @@ The LLM adapter supports multiple providers via PydanticAI:
 === "Anthropic"
 
     ```python
-    from memvee.llm import PydanticAIAdapter
+    from memv.llm import PydanticAIAdapter
 
     llm = PydanticAIAdapter("anthropic:claude-3-5-sonnet-latest")
     ```
@@ -111,7 +111,7 @@ The LLM adapter supports multiple providers via PydanticAI:
 === "Google"
 
     ```python
-    from memvee.llm import PydanticAIAdapter
+    from memv.llm import PydanticAIAdapter
 
     llm = PydanticAIAdapter("google-gla:gemini-2.5-flash")
     ```
@@ -119,7 +119,7 @@ The LLM adapter supports multiple providers via PydanticAI:
 === "Groq"
 
     ```python
-    from memvee.llm import PydanticAIAdapter
+    from memv.llm import PydanticAIAdapter
 
     llm = PydanticAIAdapter("groq:llama-3.3-70b-versatile")
     ```
@@ -128,6 +128,6 @@ See [PydanticAI models](https://ai.pydantic.dev/models/) for the full list.
 
 ## Next Steps
 
-- [Core Concepts](concepts/index.md) — How memvee works under the hood
+- [Core Concepts](concepts/index.md) — How memv works under the hood
 - [Configuration](advanced/configuration.md) — Tuning all the knobs
 - [Custom Providers](advanced/custom-providers.md) — Bring your own embedding/LLM
