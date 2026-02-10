@@ -9,8 +9,8 @@ flowchart TD
     C --> D[Episode Generation]
     D --> E[Predict-Calibrate Extraction]
     E --> F[SemanticKnowledge]
-    F --> G[VectorIndex\nsqlite-vec]
-    F --> H[TextIndex\nFTS5]
+    F --> G[VectorIndex<br>sqlite-vec]
+    F --> H[TextIndex<br>FTS5]
     G & H -->|retrieve| I[RRF Fusion]
     I --> J[RetrievalResult]
 ```

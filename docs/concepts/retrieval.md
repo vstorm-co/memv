@@ -8,9 +8,9 @@ memv uses hybrid search combining vector similarity and BM25 text search, merged
 flowchart LR
     Q[Query] --> EMB[Embed Query]
     Q --> TXT[Query Text]
-    EMB --> VS[Vector Search\nknowledge + episodes]
-    TXT --> BM[BM25 Search\nknowledge + episodes]
-    VS & BM --> RRF[RRF Fusion\nk=60]
+    EMB --> VS[Vector Search<br>knowledge + episodes]
+    TXT --> BM[BM25 Search<br>knowledge + episodes]
+    VS & BM --> RRF[RRF Fusion<br>k=60]
     RRF --> R[RetrievalResult]
 ```
 

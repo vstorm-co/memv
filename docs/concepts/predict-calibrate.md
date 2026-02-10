@@ -14,10 +14,10 @@ Predict-calibrate flips the question: *"What did I fail to predict?"*
 
 ```mermaid
 flowchart TD
-    E[New Episode] --> R[Retrieve existing knowledge\nrelevant to episode]
-    R --> P[Predict what episode\nshould contain]
-    P --> C[Compare prediction\nto actual content]
-    C --> X[Extract only what\nwas unpredicted]
+    E[New Episode] --> R[Retrieve existing knowledge<br>relevant to episode]
+    R --> P[Predict what episode<br>should contain]
+    P --> C[Compare prediction<br>to actual content]
+    C --> X[Extract only what<br>was unpredicted]
     X --> N[New facts]
     X --> U[Updates to existing facts]
     X --> D[Contradictions]

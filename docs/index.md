@@ -79,8 +79,8 @@ async with memory:
 flowchart TD
     M[Messages] --> E[Episodes]
     E --> K[Knowledge]
-    K --> VI[Vector Index\nsqlite-vec]
-    K --> TI[Text Index\nFTS5]
+    K --> VI[Vector Index<br>sqlite-vec]
+    K --> TI[Text Index<br>FTS5]
 ```
 
 See [Core Concepts](concepts/index.md) for the full breakdown.
