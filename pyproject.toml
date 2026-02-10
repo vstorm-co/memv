@@ -1,5 +1,5 @@
 [project]
-name = "memv-ai"
+name = "memvee"
 version = "0.1.0"
 description = "Structured, temporal memory for AI agents."
 readme = "README.md"

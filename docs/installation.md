@@ -8,7 +8,7 @@
 ## Install from PyPI
 
 ```bash
-pip install memv-ai
+pip install memvee
 ```
 
 Or with uv:

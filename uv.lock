@@ -2313,7 +2313,7 @@ wheels = [
 ]
 
 [[package]]
-name = "memv-ai"
+name = "memvee"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [

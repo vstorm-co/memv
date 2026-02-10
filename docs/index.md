@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <a href="https://pypi.org/project/memv-ai/"><img src="https://img.shields.io/pypi/v/memv-ai.svg" alt="PyPI"></a>
+  <a href="https://pypi.org/project/memvee/"><img src="https://img.shields.io/pypi/v/memvee.svg" alt="PyPI"></a>
   <a href="https://www.python.org/"><img src="https://img.shields.io/badge/python-3.13+-blue.svg" alt="Python 3.13+"></a>
   <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/license-MIT-green" alt="License"></a>
   <a href="https://github.com/pydantic/pydantic-ai"><img src="https://img.shields.io/badge/Powered%20by-Pydantic%20AI-E92063?logo=pydantic&logoColor=white" alt="Pydantic AI"></a>
@@ -31,7 +31,7 @@
 ## Quick Start
 
 ```bash
-pip install memv-ai
+pip install memvee
 ```
 
 ```python
