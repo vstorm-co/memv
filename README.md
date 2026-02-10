@@ -11,11 +11,11 @@
 <p align="center">
   <a href="https://vstorm-co.github.io/memv/">Docs</a> •
   <a href="https://vstorm-co.github.io/memv/getting-started/">Getting Started</a> •
-  <a href="https://pypi.org/project/memv/">PyPI</a>
+  <a href="https://pypi.org/project/memv-ai/">PyPI</a>
 </p>
 
 <p align="center">
-  <a href="https://pypi.org/project/memv/"><img src="https://img.shields.io/pypi/v/memv.svg" alt="PyPI version"></a>
+  <a href="https://pypi.org/project/memv-ai/"><img src="https://img.shields.io/pypi/v/memv-ai.svg" alt="PyPI version"></a>
   <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/python-3.13+-blue.svg" alt="Python 3.13+"></a>
   <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT"></a>
   <a href="https://github.com/pydantic/pydantic-ai"><img src="https://img.shields.io/badge/Powered%20by-Pydantic%20AI-E92063?logo=pydantic&logoColor=white" alt="Pydantic AI"></a>
@@ -51,7 +51,7 @@ Most memory systems extract everything and hope retrieval sorts it out. memv is 
 ## Get Started in 60 Seconds
 
 ```bash
-pip install memv
+pip install memv-ai
 ```
 
 ```python

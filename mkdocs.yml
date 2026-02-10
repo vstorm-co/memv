@@ -154,7 +154,7 @@ extra:
       link: https://github.com/vstorm-co/memv
       name: GitHub
     - icon: fontawesome/brands/python
-      link: https://pypi.org/project/memv/
+      link: https://pypi.org/project/memv-ai/
       name: PyPI
   generator: false
 

@@ -1,5 +1,5 @@
 [project]
-name = "memv"
+name = "memv-ai"
 version = "0.1.0"
 description = "Structured, temporal memory for AI agents."
 readme = "README.md"
@@ -39,6 +39,9 @@ Changelog = "https://github.com/vstorm-co/memv/blob/main/CHANGELOG.md"
 [build-system]
 requires = ["uv_build>=0.9.21,<0.10.0"]
 build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-name = "memv"
 
 [dependency-groups]
 dev = [
