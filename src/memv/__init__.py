@@ -1,4 +1,4 @@
-"""AgentMemory - Structured, temporal memory for AI agents.
+"""memv - Structured, temporal memory for AI agents.
 
 Example:
     ```python
@@ -48,5 +48,5 @@ __all__ = [
 
 
 def main() -> None:
-    print("AgentMemory - Structured, temporal memory for AI agents.")
+    print("memv - Structured, temporal memory for AI agents.")
     print("See examples/ for usage demos.")

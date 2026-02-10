@@ -62,6 +62,7 @@ examples = [
     "langgraph>=1.0",
     "llama-index>=0.14",
     "llama-index-llms-openai>=0.6",
+    "rich>=13.0",
     "typer>=0.15",
 ]
 
