@@ -23,9 +23,9 @@ theme:
         icon: material/brightness-7
         name: Switch to dark mode
   font:
-    text: Inter
+    text: DM Sans
     code: JetBrains Mono
-  favicon: assets/banner.png
+  favicon: assets/favicon.png
   icon:
     repo: fontawesome/brands/github
     admonition:
