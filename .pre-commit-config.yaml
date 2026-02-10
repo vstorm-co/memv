@@ -2,8 +2,16 @@ repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.12.5
     hooks:
-      - id: ruff
-        args: ["check", "--select", "I", "--fix"]
+      - id: ruff-check
+        args: ["--fix"]
         files: "^src/"
       - id: ruff-format
         files: "^src/"
+  - repo: local
+    hooks:
+      - id: ty
+        name: ty
+        entry: uv run ty check src/
+        language: system
+        types: [python]
+        pass_filenames: false

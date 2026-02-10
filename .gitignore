@@ -226,3 +226,12 @@ pyrightconfig.json
 .ionide
 
 # End of https://www.toptal.com/developers/gitignore/api/python,macos,visualstudiocode
+
+.local_gitignore
+
+# Memory databases
+.db/
+
+# Local roadmap files
+ROADMAP.md
+agentmemory-roadmap.md
