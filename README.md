@@ -9,8 +9,8 @@
 </p>
 
 <p align="center">
-  <a href="docs/getting-started.md">Docs</a> •
-  <a href="examples/">Examples</a> •
+  <a href="https://vstorm-co.github.io/memv/">Docs</a> •
+  <a href="https://vstorm-co.github.io/memv/getting-started/">Getting Started</a> •
   <a href="https://pypi.org/project/memv/">PyPI</a>
 </p>
 
@@ -195,20 +195,22 @@ class MyAgent:
 
 ## Documentation
 
-- [Getting Started](docs/getting-started.md) — Installation, setup, first example
-- [API Reference](docs/api.md) — All public classes and methods  
-- [Architecture](docs/architecture.md) — How it works internally
+- [Getting Started](https://vstorm-co.github.io/memv/getting-started/) — Installation, setup, first example
+- [Core Concepts](https://vstorm-co.github.io/memv/concepts/) — Predict-calibrate, episodes, bi-temporal, retrieval
+- [API Reference](https://vstorm-co.github.io/memv/api/) — All public classes and methods
 
 ---
 
 ## Contributing
 
 ```bash
-git clone https://github.com/vstorm-co/agentmemory.git
-cd agentmemory
-uv sync
-uv run pytest
+git clone https://github.com/vstorm-co/memv.git
+cd memv
+make install
+make all
 ```
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for details.
 
 ---
 

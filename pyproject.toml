@@ -3,10 +3,20 @@ name = "memv"
 version = "0.1.0"
 description = "Structured, temporal memory for AI agents."
 readme = "README.md"
+license = "MIT"
 authors = [
     { name = "bartosz roguski", email = "bartosz.k.roguski@gmail.com" }
 ]
 requires-python = ">=3.13"
+keywords = ["ai", "agents", "memory", "llm", "rag", "temporal"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Typing :: Typed",
+]
 dependencies = [
     "aiosqlite>=0.22.1",
     "openai>=2.15.0",
@@ -18,6 +28,13 @@ dependencies = [
 
 [project.scripts]
 memv = "memv:main"
+
+[project.urls]
+Homepage = "https://github.com/vstorm-co/memv"
+Documentation = "https://vstorm-co.github.io/memv/"
+Repository = "https://github.com/vstorm-co/memv"
+Issues = "https://github.com/vstorm-co/memv/issues"
+Changelog = "https://github.com/vstorm-co/memv/blob/main/CHANGELOG.md"
 
 [build-system]
 requires = ["uv_build>=0.9.21,<0.10.0"]
