@@ -5,18 +5,19 @@ from dataclasses import dataclass
 
 @dataclass
 class MemoryConfig:
-    """
-    Configuration for Memory system.
+    """Configuration for Memory system.
 
     Provides centralized configuration with sensible defaults.
     Can be passed to Memory() or individual params can be overridden.
 
     Example:
+        ```python
         config = MemoryConfig(
             max_statements_for_prediction=5,
             enable_episode_merging=False,
         )
         memory = Memory(config=config, embedding_client=embedder, llm_client=llm)
+        ```
     """
 
     # Database

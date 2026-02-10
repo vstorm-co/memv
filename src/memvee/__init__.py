@@ -1,7 +1,7 @@
-"""
-AgentMemory - Structured, temporal memory for AI agents.
+"""AgentMemory - Structured, temporal memory for AI agents.
 
-Example usage:
+Example:
+    ```python
     from memvee import Memory, Message, MessageRole
     from memvee.embeddings import OpenAIEmbedAdapter
     from memvee.llm import PydanticAIAdapter
@@ -17,6 +17,7 @@ Example usage:
         await memory.process(user_id)
         result = await memory.retrieve("query", user_id=user_id)
         print(result.to_prompt())
+    ```
 """
 
 from memvee.config import MemoryConfig

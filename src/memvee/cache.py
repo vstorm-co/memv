@@ -15,13 +15,13 @@ class CacheEntry:
 
 
 class EmbeddingCache:
-    """
-    LRU cache for query embeddings with TTL.
+    """LRU cache for query embeddings with TTL.
 
     Caches embedding vectors by text content hash to avoid redundant API calls.
     Thread-safe for single-threaded async usage (no locks needed).
 
     Example:
+        ```python
         cache = EmbeddingCache(max_size=1000, ttl_seconds=600)
 
         # Check cache first
@@ -29,6 +29,7 @@ class EmbeddingCache:
         if embedding is None:
             embedding = await embedder.embed("query text")
             cache.set("query text", embedding)
+        ```
     """
 
     def __init__(self, max_size: int = 1000, ttl_seconds: int = 600):

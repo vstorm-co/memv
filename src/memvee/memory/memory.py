@@ -17,10 +17,10 @@ if TYPE_CHECKING:
 
 
 class Memory:
-    """
-    Main entry point for memvee.
+    """Main entry point for memvee.
 
-    Usage:
+    Example:
+        ```python
         memory = Memory(db_path="memory.db", embedding_client=embedder, llm_client=llm)
         await memory.open()
 
@@ -31,8 +31,10 @@ class Memory:
         print(results.to_prompt())  # Formatted for LLM context
 
         await memory.close()
+        ```
 
-    Auto-processing (Nemori-style):
+    Example: Auto-processing:
+        ```python
         memory = Memory(
             db_path="memory.db",
             embedding_client=embedder,
@@ -49,6 +51,7 @@ class Memory:
 
             # Wait for background processing to complete
             await memory.wait_for_processing(user_id, timeout=30)
+        ```
     """
 
     def __init__(
