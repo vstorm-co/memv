@@ -1,5 +1,5 @@
 """
-AgentMemory Quickstart
+memv Quickstart
 ======================
 
 Minimal example showing the core API.
@@ -10,9 +10,9 @@ Run with:
 
 import asyncio
 
-from memvee import Memory
-from memvee.embeddings import OpenAIEmbedAdapter
-from memvee.llm import PydanticAIAdapter
+from memv import Memory
+from memv.embeddings import OpenAIEmbedAdapter
+from memv.llm import PydanticAIAdapter
 
 
 async def main():

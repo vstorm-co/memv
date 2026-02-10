@@ -2,7 +2,7 @@
 Agent Integration Example
 =========================
 
-Shows how to integrate AgentMemory into a simple conversational agent.
+Shows how to integrate memv into a simple conversational agent.
 
 With auto_process enabled (Nemori-style), the pattern is:
 1. User sends message
@@ -17,11 +17,17 @@ Run with:
 import asyncio
 from datetime import datetime, timezone
 
+import typer
 from openai import AsyncOpenAI
+from rich.console import Console
+from rich.panel import Panel
 
-from memvee import Memory
-from memvee.embeddings import OpenAIEmbedAdapter
-from memvee.llm import PydanticAIAdapter
+from memv import Memory
+from memv.embeddings import OpenAIEmbedAdapter
+from memv.llm import PydanticAIAdapter
+
+console = Console()
+app = typer.Typer()
 
 
 class MemoryAgent:
@@ -72,16 +78,12 @@ that's relevant, mention it naturally. Don't make up information that isn't in t
 
 
 async def main():
-    print("=" * 60)
-    print("Memory Agent Demo")
-    print("=" * 60)
-    print("Chat with an agent that remembers your conversations.")
-    print("Commands: 'quit', 'flush' (force processing), 'debug' (show memory)")
-    print("=" * 60)
+    console.print(Panel.fit("Memory Agent Demo", style="bold"))
+    console.print("[dim]Commands: quit, flush, debug[/dim]\n")
 
     # Initialize memory with auto-processing enabled
     memory = Memory(
-        db_path=".db/agent_memory.db",
+        db_path=".db/memv.db",
         embedding_client=OpenAIEmbedAdapter(),
         llm_client=PydanticAIAdapter("openai:gpt-4.1-mini"),
         auto_process=True,  # Enable automatic background processing
@@ -96,7 +98,7 @@ async def main():
         # Chat loop
         while True:
             try:
-                user_input = input("\nYou: ").strip()
+                user_input = console.input("[bold cyan]You:[/] ").strip()
             except (EOFError, KeyboardInterrupt):
                 break
 
@@ -104,31 +106,41 @@ async def main():
                 continue
 
             if user_input.lower() == "quit":
-                # Flush any pending messages before exit
-                count = await memory.flush(agent.user_id)
+                with console.status("[dim]Processing memories…[/dim]"):
+                    count = await memory.flush(agent.user_id)
                 if count > 0:
-                    print(f"[Flushed {count} knowledge entries on exit]")
+                    console.print(f"[dim][Flushed {count} knowledge entries on exit][/dim]")
                 break
 
             if user_input.lower() == "flush":
-                count = await memory.flush(agent.user_id)
-                print(f"[Flushed memory: {count} knowledge entries extracted]")
+                with console.status("[dim]Processing memories…[/dim]"):
+                    count = await memory.flush(agent.user_id)
+                console.print(f"[dim][Flushed: {count} knowledge entries extracted][/dim]")
                 continue
 
             if user_input.lower() == "debug":
                 # Show what's in memory
                 result = await memory.retrieve("*", user_id=agent.user_id, top_k=10)
-                print("\n[Memory contents]")
-                print(result.to_prompt())
                 buffered = memory._buffers.get(agent.user_id, 0)
-                print(f"\n[Buffered messages: {buffered}]")
+                console.print(
+                    Panel(
+                        (result.to_prompt() or "[dim]No memories yet[/dim]") + f"\n\n[dim]Buffered messages: {buffered}[/dim]",
+                        title="Memory Contents",
+                    )
+                )
                 continue
 
             response = await agent.chat(user_input)
-            print(f"\nAssistant: {response}")
+            console.print(f"\n[bold green]Assistant:[/bold green] {response}\n")
 
-    print("\n[Session ended]")
+    console.print("[dim][Session ended][/dim]")
+
+
+@app.command()
+def run() -> None:
+    """Memory Agent with memv Memory."""
+    asyncio.run(main())
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    app()

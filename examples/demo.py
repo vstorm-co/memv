@@ -1,8 +1,8 @@
 """
-AgentMemory Demo
+memv Demo
 ================
 
-This demo shows how AgentMemory extracts and retrieves knowledge from conversations.
+This demo shows how memv extracts and retrieves knowledge from conversations.
 
 Key concepts demonstrated:
 1. Setting up Memory with embedding and LLM clients
@@ -21,9 +21,9 @@ Requires:
 import asyncio
 from datetime import datetime, timedelta, timezone
 
-from memvee import Memory
-from memvee.embeddings import OpenAIEmbedAdapter
-from memvee.llm import PydanticAIAdapter
+from memv import Memory
+from memv.embeddings import OpenAIEmbedAdapter
+from memv.llm import PydanticAIAdapter
 
 
 async def main():
@@ -32,7 +32,7 @@ async def main():
     # =========================================================================
 
     print("=" * 70)
-    print("AgentMemory Demo")
+    print("memv Demo")
     print("=" * 70)
 
     # Initialize clients

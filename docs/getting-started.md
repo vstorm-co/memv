@@ -1,43 +1,15 @@
 # Getting Started
 
-## Prerequisites
-
-- Python 3.13+
-- OpenAI API key (for default adapters)
-
-## Installation
-
-```bash
-pip install memvee
-```
-
-For development:
-
-```bash
-git clone https://github.com/brgsk/agentmemory.git
-cd agentmemory
-uv sync
-```
-
-## Setup
-
-Set your OpenAI API key:
-
-```bash
-export OPENAI_API_KEY=sk-...
-```
-
 ## First Example
 
 ```python
 import asyncio
-from memvee import Memory
-from memvee.embeddings import OpenAIEmbedAdapter
-from memvee.llm import PydanticAIAdapter
+from memv import Memory
+from memv.embeddings import OpenAIEmbedAdapter
+from memv.llm import PydanticAIAdapter
 
 
 async def main():
-    # Initialize memory with adapters
     memory = Memory(
         db_path="memory.db",
         embedding_client=OpenAIEmbedAdapter(),
@@ -72,100 +44,23 @@ if __name__ == "__main__":
     asyncio.run(main())
 ```
 
-## Using Different Providers
+That's it. After `process()`, memv has:
 
-### Anthropic
-
-```python
-from memvee.llm import PydanticAIAdapter
-
-llm = PydanticAIAdapter("anthropic:claude-3-5-sonnet-latest")
-```
-
-Requires `ANTHROPIC_API_KEY` environment variable.
-
-### Google
-
-```python
-llm = PydanticAIAdapter("google-gla:gemini-2.5-flash")
-```
-
-Requires `GOOGLE_API_KEY` environment variable.
-
-### Groq
-
-```python
-llm = PydanticAIAdapter("groq:llama-3.3-70b-versatile")
-```
-
-Requires `GROQ_API_KEY` environment variable.
-
-See [PydanticAI models](https://ai.pydantic.dev/models/) for the full list.
-
-## Custom Embedding Provider
-
-Implement the `EmbeddingClient` protocol:
-
-```python
-from memvee.protocols import EmbeddingClient
-
-
-class MyEmbedder:
-    async def embed(self, text: str) -> list[float]:
-        # Return embedding vector
-        ...
-
-    async def embed_batch(self, texts: list[str]) -> list[list[float]]:
-        # Return list of embedding vectors
-        ...
-
-
-memory = Memory(
-    db_path="memory.db",
-    embedding_client=MyEmbedder(),
-    llm_client=PydanticAIAdapter("openai:gpt-4o-mini"),
-)
-```
-
-## Custom LLM Provider
-
-Implement the `LLMClient` protocol:
-
-```python
-from memvee.protocols import LLMClient
-from typing import TypeVar
-
-T = TypeVar("T")
-
-
-class MyLLM:
-    async def generate(self, prompt: str) -> str:
-        # Return text response
-        ...
-
-    async def generate_structured(self, prompt: str, response_model: type[T]) -> T:
-        # Return instance of response_model (Pydantic model)
-        ...
-
-
-memory = Memory(
-    db_path="memory.db",
-    embedding_client=OpenAIEmbedAdapter(),
-    llm_client=MyLLM(),
-)
-```
+1. Segmented the messages into an episode
+2. Generated a narrative summary
+3. Predicted what the episode should contain (nothing -- first time)
+4. Extracted knowledge from the prediction gap
+5. Indexed everything for hybrid retrieval
 
 ## Agent Integration Pattern
 
-Typical pattern for integrating memory into a conversational agent:
+The typical pattern for adding memory to any agent:
 
 ```python
 class MemoryAgent:
     def __init__(self, memory: Memory):
         self.memory = memory
         self.user_id = "default-user"
-        self.exchange_count = 0
-        self.process_every = 5  # Process memory every N exchanges
 
     async def chat(self, user_message: str) -> str:
         # 1. Retrieve relevant context
@@ -188,32 +83,51 @@ Use the context to personalize responses."""
             assistant_message=assistant_message,
         )
 
-        # 5. Periodically process to extract knowledge
-        self.exchange_count += 1
-        if self.exchange_count % self.process_every == 0:
-            await self.memory.process(self.user_id)
-
         return assistant_message
 ```
 
-See `examples/agent_integration.py` for a complete working example.
+This pattern works with any framework. See [Examples](examples/index.md) for PydanticAI, LangGraph, LlamaIndex, CrewAI, and AutoGen integrations.
 
-## Non-Blocking Processing
+## Using Different Providers
 
-For long conversations, use `process_async()` to avoid blocking:
+The LLM adapter supports multiple providers via PydanticAI:
 
-```python
-# Start processing in background
-task = memory.process_async(user_id)
+=== "OpenAI"
 
-# Do other work...
-await some_other_operation()
+    ```python
+    from memv.llm import PydanticAIAdapter
 
-# Wait for result when needed
-count = await task.wait()
-print(f"Extracted {count} knowledge entries")
+    llm = PydanticAIAdapter("openai:gpt-4o-mini")
+    ```
 
-# Or check status without waiting
-if task.done:
-    print(f"Status: {task.status}, Count: {task.knowledge_count}")
-```
+=== "Anthropic"
+
+    ```python
+    from memv.llm import PydanticAIAdapter
+
+    llm = PydanticAIAdapter("anthropic:claude-3-5-sonnet-latest")
+    ```
+
+=== "Google"
+
+    ```python
+    from memv.llm import PydanticAIAdapter
+
+    llm = PydanticAIAdapter("google-gla:gemini-2.5-flash")
+    ```
+
+=== "Groq"
+
+    ```python
+    from memv.llm import PydanticAIAdapter
+
+    llm = PydanticAIAdapter("groq:llama-3.3-70b-versatile")
+    ```
+
+See [PydanticAI models](https://ai.pydantic.dev/models/) for the full list.
+
+## Next Steps
+
+- [Core Concepts](concepts/index.md) — How memv works under the hood
+- [Configuration](advanced/configuration.md) — Tuning all the knobs
+- [Custom Providers](advanced/custom-providers.md) — Bring your own embedding/LLM
