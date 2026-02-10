@@ -29,7 +29,7 @@ lint: ## Lint the code
 
 .PHONY: typecheck
 typecheck: ## Run static type checking
-	uv run ty check
+	uv run ty check src/
 
 .PHONY: test
 test: ## Run tests
