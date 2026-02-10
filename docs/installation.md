@@ -14,7 +14,7 @@ pip install memvee
 Or with uv:
 
 ```bash
-uv add memv
+uv add memvee
 ```
 
 ## Environment Variables
