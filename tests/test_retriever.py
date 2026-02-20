@@ -39,14 +39,17 @@ async def retriever_env(tmp_path):
     """Set up a Retriever with real stores and MockEmbedder."""
     db_path = str(tmp_path / "retriever.db")
     ks = KnowledgeStore(db_path)
+    vi = VectorIndex(db_path, dimensions=1536)
+    ti = TextIndex(db_path)
     embedder = MockEmbedder(dimensions=1536)
+
+    await ks.open()
+    await ti.open()
     try:
-        vi = VectorIndex(db_path, dimensions=1536)
-        ti = TextIndex(db_path)
-        await ks.open()
         await vi.open()
-        await ti.open()
-    except Exception:
+    except ImportError:
+        await ti.close()
+        await ks.close()
         pytest.skip("sqlite-vec extension not available")
 
     retriever = Retriever(
@@ -169,10 +172,11 @@ async def test_rrf_fusion_ordering(retriever_env):
     assert result.retrieved_knowledge[0].statement == "User likes Python programming"
 
 
-async def test_no_embedder_raises():
-    ks = KnowledgeStore.__new__(KnowledgeStore)
-    vi = VectorIndex.__new__(VectorIndex)
-    ti = TextIndex.__new__(TextIndex)
+async def test_no_embedder_raises(tmp_path):
+    db_path = str(tmp_path / "no_embedder.db")
+    ks = KnowledgeStore(db_path)
+    vi = VectorIndex(db_path, dimensions=4)
+    ti = TextIndex(db_path)
     retriever = Retriever(knowledge_store=ks, vector_index=vi, text_index=ti, embedding_client=None)
 
     with pytest.raises(RuntimeError, match="Embedding client required"):

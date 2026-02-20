@@ -1,3 +1,5 @@
+import hashlib
+import struct
 from datetime import datetime, timezone
 from uuid import uuid4
 
@@ -44,7 +46,7 @@ async def vector_index(tmp_path):
     idx = VectorIndex(str(tmp_path / "test.db"), dimensions=4)
     try:
         await idx.open()
-    except Exception:
+    except ImportError:
         pytest.skip("sqlite-vec extension not available")
     try:
         yield idx
@@ -88,9 +90,6 @@ def make_knowledge(episode_id=None, statement="User likes Python", embedding=Non
 # ---------------------------------------------------------------------------
 # Mock LLM & Embedding clients
 # ---------------------------------------------------------------------------
-
-import hashlib
-import struct
 
 
 class MockLLM:
@@ -181,14 +180,19 @@ async def pipeline_stores(tmp_path):
     episodes = EpisodeStore(db_path)
     knowledge = KnowledgeStore(db_path)
     text_idx = TextIndex(db_path)
+    vec_idx = VectorIndex(db_path, dimensions=1536)
+
+    await messages.open()
+    await episodes.open()
+    await knowledge.open()
+    await text_idx.open()
     try:
-        vec_idx = VectorIndex(db_path, dimensions=1536)
-        await messages.open()
-        await episodes.open()
-        await knowledge.open()
-        await text_idx.open()
         await vec_idx.open()
-    except Exception:
+    except ImportError:
+        await text_idx.close()
+        await knowledge.close()
+        await episodes.close()
+        await messages.close()
         pytest.skip("sqlite-vec extension not available")
 
     yield {
