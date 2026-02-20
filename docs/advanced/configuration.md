@@ -65,13 +65,6 @@ memory = Memory(config=config, auto_process=True, ...)
 |-----------|---------|-------------|
 | `max_statements_for_prediction` | `10` | How many existing knowledge statements to use during prediction. More = better predictions, higher token cost. |
 
-### Retrieval
-
-| Parameter | Default | Description |
-|-----------|---------|-------------|
-| `search_top_k_episodes` | `10` | Default max episodes returned per query. |
-| `search_top_k_knowledge` | `10` | Default max knowledge entries returned per query. |
-
 ### Embedding Cache
 
 | Parameter | Default | Description |

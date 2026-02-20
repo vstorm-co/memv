@@ -178,26 +178,24 @@ class Memory:
         user_id: str,
         top_k: int = 10,
         vector_weight: float = 0.5,
-        include_episodes: bool = True,
         at_time: datetime | None = None,
         include_expired: bool = False,
     ) -> RetrievalResult:
         """
-        Retrieve relevant knowledge and episodes for a query.
+        Retrieve relevant knowledge for a query.
 
         Args:
             query: Search query
             user_id: Filter results to this user only (required for privacy)
-            top_k: Number of results to return per category
+            top_k: Number of results to return
             vector_weight: Balance between vector (1.0) and text (0.0) search
-            include_episodes: Whether to search and return episodes
             at_time: If provided, filter knowledge by validity at this event time.
                      Returns only knowledge that was valid at that point in time.
             include_expired: If True, include superseded (expired) records.
                             Useful for viewing full history of a fact.
 
         Returns:
-            RetrievalResult containing knowledge and episodes.
+            RetrievalResult containing knowledge statements.
             Use result.to_prompt() to get formatted context for LLM.
         """
         return await retrieve(
@@ -206,7 +204,6 @@ class Memory:
             user_id,
             top_k,
             vector_weight,
-            include_episodes,
             at_time,
             include_expired,
         )

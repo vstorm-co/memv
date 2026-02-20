@@ -6,8 +6,8 @@ from datetime import datetime
 from typing import TYPE_CHECKING
 from uuid import UUID
 
-from memv.models import Episode, RetrievalResult, SemanticKnowledge
-from memv.protocols import EmbeddingClient, EpisodeStore, KnowledgeStore
+from memv.models import RetrievalResult, SemanticKnowledge
+from memv.protocols import EmbeddingClient, KnowledgeStore
 from memv.storage import TextIndex, VectorIndex
 
 if TYPE_CHECKING:
@@ -18,27 +18,20 @@ class Retriever:
     """
     Hybrid retriever combining vector similarity and text search.
 
-    Searches both knowledge statements and episodes, returning
-    unified results with RRF fusion.
+    Searches knowledge statements and returns unified results with RRF fusion.
     """
 
     def __init__(
         self,
         knowledge_store: KnowledgeStore,
-        episode_store: EpisodeStore,
         vector_index: VectorIndex,
         text_index: TextIndex,
-        episode_vector_index: VectorIndex | None = None,
-        episode_text_index: TextIndex | None = None,
         embedding_client: EmbeddingClient | None = None,
         embedding_cache: EmbeddingCache | None = None,
     ):
         self.knowledge = knowledge_store
-        self.episodes = episode_store
         self.vector_index = vector_index
         self.text_index = text_index
-        self.episode_vector_index = episode_vector_index
-        self.episode_text_index = episode_text_index
         self.embedder = embedding_client
         self._embedding_cache = embedding_cache
 
@@ -48,24 +41,22 @@ class Retriever:
         user_id: str,
         top_k: int = 10,
         vector_weight: float = 0.5,
-        include_episodes: bool = True,
         at_time: datetime | None = None,
         include_expired: bool = False,
     ) -> RetrievalResult:
         """
-        Retrieve relevant knowledge and episodes for a query.
+        Retrieve relevant knowledge for a query.
 
         Args:
             query: Search query text
             user_id: Filter results to this user only (required for privacy)
-            top_k: Number of results to return per category
+            top_k: Number of results to return
             vector_weight: Weight for vector vs text (0-1, where 0.5 is balanced)
-            include_episodes: Whether to search and return episodes
             at_time: If provided, filter knowledge by validity at this event time
             include_expired: If True, include superseded (expired) records
 
         Returns:
-            RetrievalResult containing knowledge statements and episodes
+            RetrievalResult containing knowledge statements
         """
         if self.embedder is None:
             raise RuntimeError("Embedding client required for retrieval")
@@ -91,31 +82,7 @@ class Retriever:
             include_expired=include_expired,
         )
 
-        # 3. Search episodes (if enabled and indices exist)
-        episodes: list[Episode] = []
-        if include_episodes and self.episode_vector_index and self.episode_text_index:
-            episodes = await self._search_episodes(
-                query=query,
-                query_embedding=query_embedding,
-                top_k=top_k,
-                vector_weight=vector_weight,
-                user_id=user_id,
-            )
-
-        # 4. Also fetch episodes for the returned knowledge (for context)
-        episode_ids_from_knowledge = {k.source_episode_id for k in knowledge}
-        existing_episode_ids = {ep.id for ep in episodes}
-        missing_episode_ids = episode_ids_from_knowledge - existing_episode_ids
-
-        for ep_id in missing_episode_ids:
-            ep = await self.episodes.get(ep_id)
-            if ep:
-                episodes.append(ep)
-
-        return RetrievalResult(
-            retrieved_knowledge=knowledge,
-            retrieved_episodes=episodes,
-        )
+        return RetrievalResult(retrieved_knowledge=knowledge)
 
     async def _search_knowledge(
         self,
@@ -172,40 +139,6 @@ class Retriever:
             return False
 
         return True
-
-    async def _search_episodes(
-        self,
-        query: str,
-        query_embedding: list[float],
-        top_k: int,
-        vector_weight: float,
-        user_id: str,
-    ) -> list[Episode]:
-        """Search episodes using hybrid vector + text search, filtered by user_id."""
-        if not self.episode_vector_index or not self.episode_text_index:
-            return []
-
-        # Vector search on episode embeddings (filtered by user_id)
-        vector_ids = await self.episode_vector_index.search(query_embedding, top_k=top_k * 3, user_id=user_id)
-
-        # Text search on episode title/content (filtered by user_id)
-        text_ids = await self.episode_text_index.search(query, top_k=top_k * 3, user_id=user_id)
-
-        # RRF fusion
-        fused_ids = self._rrf_fusion(vector_ids, text_ids, vector_weight=vector_weight)
-
-        # Fetch full objects
-        episodes = []
-        seen = set()
-        for eid in fused_ids[:top_k]:
-            if eid in seen:
-                continue
-            ep = await self.episodes.get(eid)
-            if ep:
-                episodes.append(ep)
-                seen.add(eid)
-
-        return episodes
 
     def _rrf_fusion(
         self,

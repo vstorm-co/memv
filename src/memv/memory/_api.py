@@ -73,25 +73,23 @@ async def retrieve(
     user_id: str,
     top_k: int = 10,
     vector_weight: float = 0.5,
-    include_episodes: bool = True,
     at_time: datetime | None = None,
     include_expired: bool = False,
 ) -> RetrievalResult:
     """
-    Retrieve relevant knowledge and episodes for a query.
+    Retrieve relevant knowledge for a query.
 
     Args:
         lifecycle: LifecycleManager instance
         query: Search query
         user_id: Filter results to this user only (required for privacy)
-        top_k: Number of results to return per category
+        top_k: Number of results to return
         vector_weight: Balance between vector (1.0) and text (0.0) search
-        include_episodes: Whether to search and return episodes
         at_time: If provided, filter knowledge by validity at this event time
         include_expired: If True, include superseded (expired) records
 
     Returns:
-        RetrievalResult containing knowledge and episodes.
+        RetrievalResult containing knowledge statements.
     """
     lifecycle.ensure_open()
     if lifecycle.retriever is None:
@@ -102,7 +100,6 @@ async def retrieve(
         user_id=user_id,
         top_k=top_k,
         vector_weight=vector_weight,
-        include_episodes=include_episodes,
         at_time=at_time,
         include_expired=include_expired,
     )
@@ -134,10 +131,6 @@ async def clear_user(
     # Clear knowledge indices
     counts["knowledge_vectors"] = await lifecycle.vector_index.clear_user(user_id)
     counts["knowledge_text"] = await lifecycle.text_index.clear_user(user_id)
-
-    # Clear episode indices
-    counts["episode_vectors"] = await lifecycle.episode_vector_index.clear_user(user_id)
-    counts["episode_text"] = await lifecycle.episode_text_index.clear_user(user_id)
 
     # Clear knowledge (by episode IDs since knowledge doesn't have user_id)
     counts["knowledge"] = await lifecycle.knowledge.clear_by_episodes(episode_ids)

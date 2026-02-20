@@ -142,27 +142,23 @@ class Pipeline:
         # 3. Store episode (new or merged)
         await self._lc.episodes.add(episode)
 
-        # 4. Index episode for retrieval
-        await self._index_episode(episode)
-
-        # 5. Retrieve existing knowledge for predict-calibrate
+        # 4. Retrieve existing knowledge for predict-calibrate
         existing = await self._lc.retriever.retrieve(
             query=f"{episode.title} {episode.content}",
             user_id=user_id,
             top_k=self._lc.max_statements_for_prediction,
-            include_episodes=False,
         )
 
-        # 6. Extract novel knowledge
+        # 5. Extract novel knowledge
         extracted = await self._lc.extractor.extract(
             episode=episode,
             existing_knowledge=existing.retrieved_knowledge,
         )
 
-        # 7. Filter out low-quality extractions
+        # 6. Filter out low-quality extractions
         extracted = [item for item in extracted if self._validate_extraction(item)]
 
-        # 8. Convert to SemanticKnowledge and store with embeddings
+        # 7. Convert to SemanticKnowledge and store with embeddings
         if not extracted:
             return 0
 
@@ -170,7 +166,7 @@ class Pipeline:
         statements = [item.statement for item in extracted]
         embeddings = await self._lc.embedder.embed_batch(statements)
 
-        # 9. Process each extracted item
+        # 8. Process each extracted item
         stored_count = 0
         for item, embedding in zip(extracted, embeddings, strict=True):
             # Handle contradictions
@@ -199,13 +195,6 @@ class Pipeline:
             stored_count += 1
 
         return stored_count
-
-    async def _index_episode(self, episode: Episode) -> None:
-        """Index episode title and content for retrieval."""
-        text_content = f"{episode.title} {episode.content}"
-        embedding = await self._lc.embedder.embed(text_content)
-        await self._lc.episode_vector_index.add(episode.id, embedding, episode.user_id)
-        await self._lc.episode_text_index.add(episode.id, text_content, episode.user_id)
 
     def _validate_extraction(self, item: ExtractedKnowledge) -> bool:
         """Filter low-confidence extractions."""

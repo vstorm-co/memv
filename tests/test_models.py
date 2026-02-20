@@ -78,31 +78,18 @@ def test_semantic_knowledge_invalidate():
 def test_retrieval_result_empty():
     result = RetrievalResult()
     assert result.to_prompt() == "No relevant context found."
-    assert result.as_text() == ""
 
 
 def test_retrieval_result_with_knowledge():
     episode_id = uuid4()
-    now = datetime.now(timezone.utc)
-
-    episode = Episode(
-        id=episode_id,
-        user_id="user1",
-        title="Python Discussion",
-        content="User discussed their programming preferences.",
-        original_messages=[],
-        start_time=now,
-        end_time=now,
-    )
 
     knowledge = SemanticKnowledge(statement="User prefers Python over JavaScript", source_episode_id=episode_id)
 
-    result = RetrievalResult(retrieved_knowledge=[knowledge], retrieved_episodes=[episode])
+    result = RetrievalResult(retrieved_knowledge=[knowledge])
     prompt = result.to_prompt()
 
-    assert "Python Discussion" in prompt
-    assert "User prefers Python over JavaScript" in prompt
-    assert "Key facts:" in prompt
+    assert "## Relevant Context" in prompt
+    assert "- User prefers Python over JavaScript" in prompt
 
 
 def test_extracted_knowledge_with_temporal_fields():

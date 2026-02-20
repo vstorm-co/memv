@@ -45,10 +45,6 @@ class MemoryConfig:
     # Prediction-calibrate
     max_statements_for_prediction: int = 10
 
-    # Retrieval defaults
-    search_top_k_episodes: int = 10
-    search_top_k_knowledge: int = 10
-
     # Embedding cache
     enable_embedding_cache: bool = True
     embedding_cache_size: int = 1000

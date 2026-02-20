@@ -432,13 +432,6 @@ class DashboardApp(App):
         async with TextIndex(self.db_path, name="knowledge") as txt_idx:
             counts["knowledge_text"] = await txt_idx.clear_user(user_id)
 
-        # Clear episode indices
-        async with VectorIndex(self.db_path, name="episode") as vec_idx:
-            counts["episode_vectors"] = await vec_idx.clear_user(user_id)
-
-        async with TextIndex(self.db_path, name="episode") as txt_idx:
-            counts["episode_text"] = await txt_idx.clear_user(user_id)
-
         # Clear knowledge by episode IDs
         async with KnowledgeStore(self.db_path) as k_store:
             counts["knowledge"] = await k_store.clear_by_episodes(episode_ids)

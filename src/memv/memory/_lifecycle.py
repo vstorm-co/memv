@@ -120,10 +120,6 @@ class LifecycleManager:
         self.vector_index = VectorIndex(self.db_path, dimensions=self.dimensions, name="knowledge")
         self.text_index = TextIndex(self.db_path, name="knowledge")
 
-        # Episode indices
-        self.episode_vector_index = VectorIndex(self.db_path, dimensions=self.dimensions, name="episode")
-        self.episode_text_index = TextIndex(self.db_path, name="episode")
-
         # Processing components (initialized in open())
         self.retriever: Retriever | None = None
         self.segmenter: BatchSegmenter | None = None
@@ -145,9 +141,6 @@ class LifecycleManager:
         await self.knowledge.open()
         await self.vector_index.open()
         await self.text_index.open()
-        await self.episode_vector_index.open()
-        await self.episode_text_index.open()
-
         # Create embedding cache if enabled
         embedding_cache = None
         if self.enable_embedding_cache:
@@ -158,11 +151,8 @@ class LifecycleManager:
 
         self.retriever = Retriever(
             knowledge_store=self.knowledge,
-            episode_store=self.episodes,
             vector_index=self.vector_index,
             text_index=self.text_index,
-            episode_vector_index=self.episode_vector_index,
-            episode_text_index=self.episode_text_index,
             embedding_client=self.embedder,
             embedding_cache=embedding_cache,
         )
@@ -202,9 +192,6 @@ class LifecycleManager:
         await self.knowledge.close()
         await self.vector_index.close()
         await self.text_index.close()
-        await self.episode_vector_index.close()
-        await self.episode_text_index.close()
-
         self.is_open = False
 
     def ensure_open(self) -> None:

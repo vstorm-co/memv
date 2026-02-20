@@ -106,61 +106,17 @@ class RetrievalResult(BaseModel):
     """Results from memory retrieval."""
 
     retrieved_knowledge: list[SemanticKnowledge] = Field(default_factory=list, description="Retrieved semantic knowledge entries.")
-    retrieved_episodes: list["Episode"] = Field(default_factory=list, description="Retrieved episodes relevant to the query.")
-
-    def as_text(self) -> str:
-        """Simple text representation of knowledge statements."""
-        return "\n".join(k.statement for k in self.retrieved_knowledge)
 
     def to_prompt(self) -> str:
-        """
-        Format retrieval results for LLM context injection.
+        """Format retrieval results for LLM context injection."""
+        if not self.retrieved_knowledge:
+            return "No relevant context found."
 
-        Groups knowledge by source episode and includes episode context
-        to avoid redundancy.
-        """
-        lines = []
-
-        # Build episode lookup for knowledge grouping
-        episode_map = {ep.id: ep for ep in self.retrieved_episodes}
-        knowledge_by_episode: dict[UUID, list[SemanticKnowledge]] = {}
-        orphan_knowledge: list[SemanticKnowledge] = []
-
+        lines = ["## Relevant Context"]
         for k in self.retrieved_knowledge:
-            if k.source_episode_id in episode_map:
-                knowledge_by_episode.setdefault(k.source_episode_id, []).append(k)
-            else:
-                orphan_knowledge.append(k)
+            lines.append(f"- {k.statement}")
 
-        # Episodes with their knowledge
-        if knowledge_by_episode:
-            lines.append("## Relevant Context")
-            for ep_id, knowledge_list in knowledge_by_episode.items():
-                ep = episode_map[ep_id]
-                lines.append(f"\n### {ep.title}")
-                lines.append(f"_{ep.content}_")
-                lines.append("\nKey facts:")
-                for k in knowledge_list:
-                    lines.append(f"- {k.statement}")
-
-        # Episodes without extracted knowledge in results
-        episodes_with_knowledge = set(knowledge_by_episode.keys())
-        episodes_without = [ep for ep in self.retrieved_episodes if ep.id not in episodes_with_knowledge]
-        if episodes_without:
-            if not lines:
-                lines.append("## Relevant Context")
-            lines.append("\n### Related Conversations")
-            for ep in episodes_without:
-                lines.append(f"\n**{ep.title}**")
-                lines.append(f"_{ep.content}_")
-
-        # Orphan knowledge (episode not in results)
-        if orphan_knowledge:
-            lines.append("\n### Additional Facts")
-            for k in orphan_knowledge:
-                lines.append(f"- {k.statement}")
-
-        return "\n".join(lines) if lines else "No relevant context found."
+        return "\n".join(lines)
 
 
 class ExtractedKnowledge(BaseModel):

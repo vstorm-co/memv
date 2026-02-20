@@ -8,8 +8,8 @@ memv uses hybrid search combining vector similarity and BM25 text search, merged
 flowchart LR
     Q[Query] --> EMB[Embed Query]
     Q --> TXT[Query Text]
-    EMB --> VS[Vector Search<br>knowledge + episodes]
-    TXT --> BM[BM25 Search<br>knowledge + episodes]
+    EMB --> VS[Vector Search<br>knowledge]
+    TXT --> BM[BM25 Search<br>knowledge]
     VS & BM --> RRF[RRF Fusion<br>k=60]
     RRF --> R[RetrievalResult]
 ```
@@ -57,44 +57,19 @@ Controls how many results to return per category:
 result = await memory.retrieve(query, user_id=uid, top_k=10)  # Default
 ```
 
-### include_episodes
-
-By default, retrieval searches both knowledge and episodes. Disable episode retrieval if you only want extracted facts:
-
-```python
-result = await memory.retrieve(query, user_id=uid, include_episodes=False)
-```
-
 ## Output Formatting
 
 `RetrievalResult` provides two formatting options:
 
 ### to_prompt()
 
-Groups knowledge by source episode — designed for LLM context injection:
+Flat list of knowledge statements — designed for LLM context injection:
 
 ```markdown
 ## Relevant Context
-
-### User's Work Background
-_The user discussed their job at Anthropic during an initial introduction._
-
-Key facts:
 - The user works at Anthropic as a researcher
 - Their focus area is AI safety, specifically interpretability
-
-### Additional Facts
 - The user prefers Python for data analysis
-```
-
-### as_text()
-
-Simple newline-separated statements:
-
-```
-The user works at Anthropic as a researcher
-Their focus area is AI safety, specifically interpretability
-The user prefers Python for data analysis
 ```
 
 ## Embedding Cache
