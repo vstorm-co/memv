@@ -171,3 +171,32 @@ async def test_clear_by_episodes_empty_list(knowledge_store):
     await knowledge_store.add(make_knowledge())
     assert await knowledge_store.clear_by_episodes([]) == 0
     assert await knowledge_store.count() == 1
+
+
+async def test_isolation_via_episodes(knowledge_store):
+    """Knowledge doesn't have user_id — isolation is via episode ownership.
+
+    Each user's knowledge is linked to their episodes via source_episode_id.
+    Retrieval isolation is enforced by VectorIndex/TextIndex (which store user_id).
+    clear_by_episodes scopes deletion to a user's episode IDs.
+    """
+    alice_ep = uuid4()
+    bob_ep = uuid4()
+    await knowledge_store.add(make_knowledge(episode_id=alice_ep, statement="Alice's secret"))
+    await knowledge_store.add(make_knowledge(episode_id=bob_ep, statement="Bob's secret"))
+
+    # get_by_episode scopes to a single episode (owned by one user)
+    alice_k = await knowledge_store.get_by_episode(alice_ep)
+    assert len(alice_k) == 1
+    assert alice_k[0].statement == "Alice's secret"
+
+    bob_k = await knowledge_store.get_by_episode(bob_ep)
+    assert len(bob_k) == 1
+    assert bob_k[0].statement == "Bob's secret"
+
+    # clear_by_episodes only deletes knowledge for given episode IDs
+    deleted = await knowledge_store.clear_by_episodes([alice_ep])
+    assert deleted == 1
+    assert await knowledge_store.count() == 1
+    remaining = await knowledge_store.get_all()
+    assert remaining[0].source_episode_id == bob_ep

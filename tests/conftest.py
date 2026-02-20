@@ -46,8 +46,8 @@ async def vector_index(tmp_path):
     idx = VectorIndex(str(tmp_path / "test.db"), dimensions=4)
     try:
         await idx.open()
-    except ImportError:
-        pytest.skip("sqlite-vec extension not available")
+    except ImportError as e:
+        pytest.skip(f"sqlite-vec extension not available: {e}")
     try:
         yield idx
     finally:

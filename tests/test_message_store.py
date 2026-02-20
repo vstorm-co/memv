@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+from uuid import uuid4
 
 from .conftest import make_message
 
@@ -17,8 +18,6 @@ async def test_add_and_get(message_store):
 
 
 async def test_get_nonexistent(message_store):
-    from uuid import uuid4
-
     assert await message_store.get(uuid4()) is None
 
 
@@ -50,6 +49,7 @@ async def test_get_by_time_range(message_store):
 
     results = await message_store.get_by_time_range("user1", t1, t2)
     assert len(results) == 2
+    # Implementation guarantees ORDER BY sent_at ASC
     assert results[0].content == "jan"
     assert results[1].content == "jun"
 
@@ -93,8 +93,6 @@ async def test_delete(message_store):
 
 
 async def test_delete_nonexistent(message_store):
-    from uuid import uuid4
-
     assert await message_store.delete(uuid4()) is False
 
 

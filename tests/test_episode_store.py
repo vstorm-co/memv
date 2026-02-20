@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+from uuid import uuid4
 
 from .conftest import make_episode
 
@@ -20,8 +21,6 @@ async def test_add_and_get(episode_store):
 
 
 async def test_get_nonexistent(episode_store):
-    from uuid import uuid4
-
     assert await episode_store.get(uuid4()) is None
 
 
@@ -120,8 +119,6 @@ async def test_delete(episode_store):
 
 
 async def test_delete_nonexistent(episode_store):
-    from uuid import uuid4
-
     assert await episode_store.delete(uuid4()) is False
 
 
