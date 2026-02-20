@@ -50,10 +50,11 @@ async def test_search_no_user_filter(text_index):
 
 
 async def test_search_special_characters(text_index):
-    await text_index.add(uuid4(), "hello world program", user_id="user1")
-    # Should not crash on FTS5 special chars
-    results = await text_index.search('hello "world" AND (test OR foo)', top_k=5, user_id="user1")
-    assert isinstance(results, list)
+    uid = uuid4()
+    await text_index.add(uid, "hello world program", user_id="user1")
+    # Should not crash on FTS5 special chars, and valid tokens should still match
+    results = await text_index.search("hello! (world)", top_k=5, user_id="user1")
+    assert uid in results
 
 
 async def test_search_empty_after_sanitize(text_index):
@@ -81,8 +82,8 @@ async def test_clear_user_empty(text_index):
     assert await text_index.clear_user("nobody") == 0
 
 
-def test_sanitize_fts_query():
-    idx = TextIndex("/dev/null")
+def test_sanitize_fts_query(tmp_path):
+    idx = TextIndex(str(tmp_path / "sanitize.db"))
     assert idx._sanitize_fts_query("hello world") == '"hello" "world"'
     assert idx._sanitize_fts_query("") == ""
     assert idx._sanitize_fts_query("!@#$") == ""
