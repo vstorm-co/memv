@@ -83,3 +83,125 @@ def make_knowledge(episode_id=None, statement="User likes Python", embedding=Non
         expired_at=expired_at,
         created_at=datetime(2024, 6, 15, 12, 0, 0, tzinfo=timezone.utc),
     )
+
+
+# ---------------------------------------------------------------------------
+# Mock LLM & Embedding clients
+# ---------------------------------------------------------------------------
+
+import hashlib
+import struct
+
+
+class MockLLM:
+    """Mock LLM client with sequential canned responses.
+
+    Usage:
+        llm = MockLLM()
+        llm.set_responses("generate", ["response1", "response2"])
+        llm.set_responses("generate_structured", [obj1, obj2])
+    """
+
+    def __init__(self):
+        self._responses: dict[str, list] = {"generate": [], "generate_structured": []}
+        self._call_index: dict[str, int] = {"generate": 0, "generate_structured": 0}
+        self.calls: dict[str, list] = {"generate": [], "generate_structured": []}
+
+    def set_responses(self, method: str, responses: list) -> None:
+        self._responses[method] = responses
+        self._call_index[method] = 0
+
+    async def generate(self, prompt: str) -> str:
+        self.calls["generate"].append(prompt)
+        idx = self._call_index["generate"]
+        responses = self._responses["generate"]
+        if idx >= len(responses):
+            raise RuntimeError(f"MockLLM.generate: no response at index {idx} (have {len(responses)})")
+        self._call_index["generate"] = idx + 1
+        return responses[idx]
+
+    async def generate_structured(self, prompt: str, response_model: type):
+        self.calls["generate_structured"].append((prompt, response_model))
+        idx = self._call_index["generate_structured"]
+        responses = self._responses["generate_structured"]
+        if idx >= len(responses):
+            raise RuntimeError(f"MockLLM.generate_structured: no response at index {idx} (have {len(responses)})")
+        self._call_index["generate_structured"] = idx + 1
+        return responses[idx]
+
+
+class MockEmbedder:
+    """Mock embedding client using SHA-256 hash → deterministic unit vector.
+
+    Same text → identical vector (cosine sim = 1.0).
+    Different text → near-orthogonal vector (sim ≈ 0).
+    """
+
+    def __init__(self, dimensions: int = 1536):
+        self.dimensions = dimensions
+        self.calls: list[str | list[str]] = []
+
+    def _hash_to_vector(self, text: str) -> list[float]:
+        digest = hashlib.sha256(text.encode()).digest()
+        # Expand hash to fill dimensions (repeat hash bytes as needed)
+        needed_bytes = self.dimensions * 4  # 4 bytes per float
+        expanded = digest * (needed_bytes // len(digest) + 1)
+        expanded = expanded[:needed_bytes]
+        raw = struct.unpack(f"{self.dimensions}f", expanded)
+        # Normalize to unit vector
+        norm = sum(x * x for x in raw) ** 0.5
+        if norm == 0:
+            return [0.0] * self.dimensions
+        return [x / norm for x in raw]
+
+    async def embed(self, text: str) -> list[float]:
+        self.calls.append(text)
+        return self._hash_to_vector(text)
+
+    async def embed_batch(self, texts: list[str]) -> list[list[float]]:
+        self.calls.append(texts)
+        return [self._hash_to_vector(t) for t in texts]
+
+
+@pytest.fixture
+def mock_llm():
+    return MockLLM()
+
+
+@pytest.fixture
+def mock_embedder():
+    return MockEmbedder(dimensions=1536)
+
+
+@pytest.fixture
+async def pipeline_stores(tmp_path):
+    """All 5 stores on a single temp DB for pipeline/e2e tests."""
+    db_path = str(tmp_path / "pipeline.db")
+    messages = MessageStore(db_path)
+    episodes = EpisodeStore(db_path)
+    knowledge = KnowledgeStore(db_path)
+    text_idx = TextIndex(db_path)
+    try:
+        vec_idx = VectorIndex(db_path, dimensions=1536)
+        await messages.open()
+        await episodes.open()
+        await knowledge.open()
+        await text_idx.open()
+        await vec_idx.open()
+    except Exception:
+        pytest.skip("sqlite-vec extension not available")
+
+    yield {
+        "db_path": db_path,
+        "messages": messages,
+        "episodes": episodes,
+        "knowledge": knowledge,
+        "text_index": text_idx,
+        "vector_index": vec_idx,
+    }
+
+    await vec_idx.close()
+    await text_idx.close()
+    await knowledge.close()
+    await episodes.close()
+    await messages.close()
