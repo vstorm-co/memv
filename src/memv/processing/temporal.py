@@ -84,10 +84,11 @@ def parse_temporal_expression(text: str, reference: datetime) -> datetime | None
                     return reference + relativedelta(days=days_diff)
 
     # "N days/weeks/months/years ago/from now"
+    # .match() is intentionally start-anchored — input is already stripped/normalized
     match = _N_UNITS_PATTERN.match(normalized)
     if match:
         n = int(match.group(1))
-        unit = match.group(2).rstrip("s")  # normalize "days" -> "day"
+        unit = match.group(2).removesuffix("s")  # normalize "days" -> "day"
         direction = -1 if match.group(3).lower() == "ago" else 1
         unit_map = {"day": "days", "week": "weeks", "month": "months", "year": "years"}
         delta = relativedelta(**{unit_map[unit]: n * direction})

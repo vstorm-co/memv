@@ -123,8 +123,8 @@ async def test_user_isolation_e2e(tmp_path):
     llm.set_responses(
         "generate_structured",
         [
-            _extraction(["User1 likes cats"]),
-            _extraction(["User2 likes dogs"]),
+            _extraction(["User likes cats"]),
+            _extraction(["User likes dogs"]),
         ],
     )
 
@@ -135,15 +135,15 @@ async def test_user_isolation_e2e(tmp_path):
         await memory.add_exchange("user2", "I like dogs", "Cool!", timestamp=_ts())
         await memory.process("user2")
 
-        r1 = await memory.retrieve("likes", user_id="user1")
-        r2 = await memory.retrieve("likes", user_id="user2")
+        r1 = await memory.retrieve("cats", user_id="user1")
+        r2 = await memory.retrieve("dogs", user_id="user2")
 
         s1 = [k.statement for k in r1.retrieved_knowledge]
         s2 = [k.statement for k in r2.retrieved_knowledge]
-        assert "User1 likes cats" in s1
-        assert "User2 likes dogs" not in s1
-        assert "User2 likes dogs" in s2
-        assert "User1 likes cats" not in s2
+        assert "User likes cats" in s1
+        assert "User likes dogs" not in s1
+        assert "User likes dogs" in s2
+        assert "User likes cats" not in s2
 
 
 async def test_clear_user(tmp_path):

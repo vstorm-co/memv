@@ -20,8 +20,12 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 # Compiled regexes for validation checks
-_FIRST_PERSON_RE = re.compile(r"\b(I|my|me|we|our)\b")
-_ASSISTANT_SOURCE_RE = re.compile(r"\b(?:was|were)\s+(?:advised|suggested|recommended)\b", re.IGNORECASE)
+_THIRD_PERSON_RE = re.compile(r"^User\b")
+_FIRST_PERSON_RE = re.compile(r"\b(I|[Mm][Yy]|[Mm][Ee]|[Ww][Ee]|[Oo][Uu][Rr])\b")
+_ASSISTANT_SOURCE_RE = re.compile(
+    r"\b(?:was|were)\s+(?:advised|suggested|recommended|told|instructed|encouraged|shown|given)\b",
+    re.IGNORECASE,
+)
 
 
 class Pipeline:
@@ -214,27 +218,26 @@ class Pipeline:
 
     def _validate_extraction(self, item: ExtractedKnowledge) -> bool:
         """Filter extractions that are low-confidence or not self-contained."""
-        stmt = item.statement
-        preview = stmt[:60]
-
         if item.confidence < 0.7:
-            logger.debug("Rejected (low confidence %.2f): %s", item.confidence, preview)
+            logger.debug("Rejected (low confidence %.2f): %s", item.confidence, item.statement[:60])
             return False
 
-        if not stmt.startswith("User"):
-            logger.debug("Rejected (not third-person): %s", preview)
+        stmt = item.statement
+
+        if not _THIRD_PERSON_RE.match(stmt):
+            logger.debug("Rejected (not third-person): %s", stmt[:60])
             return False
 
         if _FIRST_PERSON_RE.search(stmt):
-            logger.debug("Rejected (first-person pronoun): %s", preview)
+            logger.debug("Rejected (first-person pronoun): %s", stmt[:60])
             return False
 
         if contains_relative_time(stmt):
-            logger.debug("Rejected (unresolved relative time): %s", preview)
+            logger.debug("Rejected (unresolved relative time): %s", stmt[:60])
             return False
 
         if _ASSISTANT_SOURCE_RE.search(stmt):
-            logger.debug("Rejected (assistant-sourced): %s", preview)
+            logger.debug("Rejected (assistant-sourced): %s", stmt[:60])
             return False
 
         return True

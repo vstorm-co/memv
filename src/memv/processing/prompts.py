@@ -95,7 +95,7 @@ Every extracted statement MUST be independently interpretable without conversati
 - First person: "I", "my", "me", "we", "our"
 
 **REQUIRE in output statements:**
-- Absolute dates when temporal info exists: "on 2024-06-15", not "yesterday"
+- Absolute dates when temporal info exists: "on [resolved date]", not "yesterday"
 - Specific names: "User's React project at Vstorm", not "the project"
 - Third person with "User" as subject: "User prefers Python", not "I prefer Python"
 

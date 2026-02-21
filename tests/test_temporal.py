@@ -120,6 +120,14 @@ class TestParseTemporalExpression:
         assert result.weekday() == 4  # Friday
         assert result > _ref()
 
+    def test_next_monday_when_ref_is_monday(self):
+        # 2024-06-10 is a Monday — "next monday" should return 2024-06-17, not same day
+        ref_monday = _ref(year=2024, month=6, day=10)
+        result = parse_temporal_expression("next monday", ref_monday)
+        assert result is not None
+        assert result.weekday() == 0  # Monday
+        assert result > ref_monday  # must be future, not same day
+
 
 # ---------------------------------------------------------------------------
 # backfill_temporal_fields
@@ -202,4 +210,16 @@ class TestBackfillTemporalFields:
         )
         # Should not crash, fields stay None
         assert valid_at is None
+        assert invalid_at is None
+
+    def test_since_relative_date(self):
+        # "since yesterday" should resolve relative to reference
+        valid_at, invalid_at = backfill_temporal_fields(
+            "since yesterday",
+            None,
+            None,
+            _ref(),
+        )
+        assert valid_at is not None
+        assert valid_at == datetime(2024, 6, 14, 12, 0, 0, tzinfo=timezone.utc)
         assert invalid_at is None
