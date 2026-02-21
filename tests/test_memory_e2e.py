@@ -229,8 +229,8 @@ async def test_flush_forces_processing(tmp_path):
         assert count == 1
 
 
-async def test_atomization_filters_bad_statements(tmp_path):
-    """LLM returns mix of good and bad statements — only atomized ones survive."""
+async def test_confidence_filters_low_quality_statements(tmp_path):
+    """Only statements with confidence >= 0.7 survive the pipeline filter."""
     llm = MockLLM()
     embedder = MockEmbedder()
 
@@ -241,10 +241,8 @@ async def test_atomization_filters_bad_statements(tmp_path):
             ExtractionResponse(
                 extracted=[
                     ExtractedKnowledge(statement="User prefers Vim", knowledge_type="new", confidence=0.9),
-                    ExtractedKnowledge(statement="I like Vim", knowledge_type="new", confidence=0.9),
-                    ExtractedKnowledge(statement="User started yesterday", knowledge_type="new", confidence=0.9),
-                    ExtractedKnowledge(statement="He uses Neovim", knowledge_type="new", confidence=0.9),
-                    ExtractedKnowledge(statement="User was advised to try Emacs", knowledge_type="new", confidence=0.9),
+                    ExtractedKnowledge(statement="User likes Emacs", knowledge_type="new", confidence=0.5),
+                    ExtractedKnowledge(statement="User uses Neovim", knowledge_type="new", confidence=0.3),
                 ]
             )
         ],
@@ -254,7 +252,6 @@ async def test_atomization_filters_bad_statements(tmp_path):
     async with memory:
         await memory.add_exchange("user1", "I prefer Vim", "Nice!", timestamp=_ts())
         count = await memory.process("user1")
-        # Only "User prefers Vim" should survive all filters
         assert count == 1
 
         result = await memory.retrieve("Vim", user_id="user1")

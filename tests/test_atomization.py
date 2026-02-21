@@ -40,66 +40,30 @@ def _make_memory(tmp_path, llm, embedder):
 
 
 # ---------------------------------------------------------------------------
-# Validation filter: unit-level via e2e pipeline
+# Confidence threshold
 # ---------------------------------------------------------------------------
 
 
-async def test_rejects_first_person(tmp_path):
-    """Statement with 'I' / 'my' gets filtered out."""
+async def test_rejects_low_confidence(tmp_path):
+    """Low-confidence items rejected."""
     llm = MockLLM()
     embedder = MockEmbedder()
 
     llm.set_responses("generate", [_episode_json()])
     llm.set_responses(
         "generate_structured",
-        [_extraction([ExtractedKnowledge(statement="User mentioned that my team uses React", knowledge_type="new", confidence=0.9)])],
+        [_extraction([ExtractedKnowledge(statement="User might like Rust", knowledge_type="new", confidence=0.3)])],
     )
 
     memory = _make_memory(tmp_path, llm, embedder)
     async with memory:
-        await memory.add_exchange("user1", "I like Python", "Cool!", timestamp=_ts())
+        await memory.add_exchange("user1", "Maybe Rust?", "Interesting!", timestamp=_ts())
         count = await memory.process("user1")
         assert count == 0
 
 
-async def test_rejects_non_third_person(tmp_path):
-    """Statement not starting with 'User' gets filtered."""
-    llm = MockLLM()
-    embedder = MockEmbedder()
-
-    llm.set_responses("generate", [_episode_json()])
-    llm.set_responses(
-        "generate_structured",
-        [_extraction([ExtractedKnowledge(statement="He likes Python", knowledge_type="new", confidence=0.9)])],
-    )
-
-    memory = _make_memory(tmp_path, llm, embedder)
-    async with memory:
-        await memory.add_exchange("user1", "I like Python", "Cool!", timestamp=_ts())
-        count = await memory.process("user1")
-        assert count == 0
-
-
-async def test_rejects_relative_time(tmp_path):
-    """Statement with unresolved 'yesterday' gets filtered."""
-    llm = MockLLM()
-    embedder = MockEmbedder()
-
-    llm.set_responses("generate", [_episode_json()])
-    llm.set_responses(
-        "generate_structured",
-        [_extraction([ExtractedKnowledge(statement="User started using FastAPI yesterday", knowledge_type="new", confidence=0.9)])],
-    )
-
-    memory = _make_memory(tmp_path, llm, embedder)
-    async with memory:
-        await memory.add_exchange("user1", "I started using FastAPI yesterday", "Nice!", timestamp=_ts())
-        count = await memory.process("user1")
-        assert count == 0
-
-
-async def test_accepts_clean_statement(tmp_path):
-    """Properly atomized statement passes all checks."""
+async def test_accepts_high_confidence(tmp_path):
+    """Statement with confidence >= 0.7 passes."""
     llm = MockLLM()
     embedder = MockEmbedder()
 
@@ -120,76 +84,52 @@ async def test_accepts_clean_statement(tmp_path):
         assert count == 1
 
 
-async def test_rejects_assistant_sourced(tmp_path):
-    """Statement with 'was advised to' pattern gets filtered."""
+async def test_accepts_non_user_subject(tmp_path):
+    """Statements not starting with 'User' are accepted."""
     llm = MockLLM()
     embedder = MockEmbedder()
 
     llm.set_responses("generate", [_episode_json()])
     llm.set_responses(
         "generate_structured",
-        [_extraction([ExtractedKnowledge(statement="User was advised to try Emacs", knowledge_type="new", confidence=0.9)])],
+        [_extraction([ExtractedKnowledge(statement="The appointment was moved to March 15", knowledge_type="new", confidence=0.9)])],
     )
 
     memory = _make_memory(tmp_path, llm, embedder)
     async with memory:
-        await memory.add_exchange("user1", "The assistant told me to try Emacs", "Sure!", timestamp=_ts())
-        count = await memory.process("user1")
-        assert count == 0
-
-
-async def test_accepts_passive_without_infinitive(tmp_path):
-    """'was given a promotion' is NOT assistant-sourced — should pass."""
-    llm = MockLLM()
-    embedder = MockEmbedder()
-
-    llm.set_responses("generate", [_episode_json()])
-    llm.set_responses(
-        "generate_structured",
-        [_extraction([ExtractedKnowledge(statement="User was given a promotion", knowledge_type="new", confidence=0.9)])],
-    )
-
-    memory = _make_memory(tmp_path, llm, embedder)
-    async with memory:
-        await memory.add_exchange("user1", "I was given a promotion", "Congrats!", timestamp=_ts())
+        await memory.add_exchange("user1", "When is my appointment?", "It was moved to March 15", timestamp=_ts())
         count = await memory.process("user1")
         assert count == 1
 
 
-async def test_accepts_lowercase_user(tmp_path):
-    """LLM may output lowercase 'user' — should still pass third-person check."""
+async def test_confidence_boundary(tmp_path):
+    """Confidence exactly at 0.7 passes, below does not."""
     llm = MockLLM()
     embedder = MockEmbedder()
 
     llm.set_responses("generate", [_episode_json()])
     llm.set_responses(
         "generate_structured",
-        [_extraction([ExtractedKnowledge(statement="user prefers Python", knowledge_type="new", confidence=0.9)])],
+        [
+            _extraction(
+                [
+                    ExtractedKnowledge(statement="User works at Vstorm", knowledge_type="new", confidence=0.7),
+                    ExtractedKnowledge(statement="User likes tea", knowledge_type="new", confidence=0.69),
+                ]
+            )
+        ],
     )
 
     memory = _make_memory(tmp_path, llm, embedder)
     async with memory:
-        await memory.add_exchange("user1", "I prefer Python", "Nice!", timestamp=_ts())
+        await memory.add_exchange("user1", "I work at Vstorm and like tea", "Nice!", timestamp=_ts())
         count = await memory.process("user1")
         assert count == 1
 
 
-async def test_confidence_filter_unchanged(tmp_path):
-    """Low-confidence items still rejected (regression check)."""
-    llm = MockLLM()
-    embedder = MockEmbedder()
-
-    llm.set_responses("generate", [_episode_json()])
-    llm.set_responses(
-        "generate_structured",
-        [_extraction([ExtractedKnowledge(statement="User might like Rust", knowledge_type="new", confidence=0.3)])],
-    )
-
-    memory = _make_memory(tmp_path, llm, embedder)
-    async with memory:
-        await memory.add_exchange("user1", "Maybe Rust?", "Interesting!", timestamp=_ts())
-        count = await memory.process("user1")
-        assert count == 0
+# ---------------------------------------------------------------------------
+# Temporal backfill
+# ---------------------------------------------------------------------------
 
 
 async def test_temporal_backfill_in_pipeline(tmp_path):

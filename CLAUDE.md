@@ -104,6 +104,12 @@ async with memory:
 
 **User isolation is mandatory**: All retrieval and storage operations require and filter by `user_id`. No cross-user queries possible by design.
 
+**Extraction validation (`_pipeline.py`)**: `_validate_extraction` enforces a single check: confidence >= 0.7. All regex filters (third-person, first-person pronouns, relative time, assistant-sourced patterns) were removed because they only work for English. Quality enforcement is handled entirely at the prompt level via ATOMIZATION_RULES and EXCLUSIONS in `prompts.py`.
+
+**`temporal.py` regex gotchas**: Avoid broad word matches in `_RELATIVE_PATTERNS` (e.g. "later"/"earlier" match adjective usage). `_UNTIL_PATTERN` must not include bare "to" (matches non-temporal uses). `_SINCE_PATTERN` uses `began` not `began?` (the `?` makes "a" optional).
+
+**PR reviews**: The `claude` bot posts automated code reviews on PRs. Check with `gh pr view <N> --comments` and address feedback before merging.
+
 ## Code Style
 
 - Line length: 135 characters

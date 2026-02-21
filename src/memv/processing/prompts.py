@@ -68,9 +68,14 @@ Do NOT extract:
 - Conversation events ("User asked about X", "User requested Y") - extract the FACT, not the action
 - Assistant-sourced knowledge ("was advised to", "was suggested to", "was recommended to")
 
-**CRITICAL SOURCE RULE - READ CAREFULLY:**
-- ONLY extract facts the USER explicitly stated in their own messages
+**CRITICAL SOURCE RULES - READ CAREFULLY:**
+- Extract facts the user explicitly stated in their own messages
+- DO extract factual information communicated by the assistant (dates, appointments, confirmations, scheduled events)
 - NEVER extract assistant suggestions, recommendations, or code examples as user facts
+- Treat assistant suggestions about user intent as speculative — never encode them as facts
+- NEVER attribute intent/action/statement to user if it originated in a hypothetical/suggestion/conditional from the assistant
+- Ignore assistant-led topics unless user acts on them
+- Attribute preferences only to explicit user claims — never to questions or reactions
 - If assistant says "use Python" and user doesn't respond with "yes" or confirm - DO NOT extract "User uses Python"
 - If assistant provides code in language X but user says "I use Y" - extract Y, not X
 - The user ASKING about something is NOT the same as the user USING it
@@ -97,7 +102,7 @@ Every extracted statement MUST be independently interpretable without conversati
 **REQUIRE in output statements:**
 - Absolute dates when temporal info exists: "on [resolved date]", not "yesterday"
 - Specific names: "User's React project at Vstorm", not "the project"
-- Third person with "User" as subject: "User prefers Python", not "I prefer Python"
+- Third person: "User prefers Python", not "I prefer Python"
 
 **Coreference resolution — resolve BEFORE writing the statement:**
 - "my kids" → "User's children"
@@ -237,10 +242,12 @@ Statements with unresolved relative time ("yesterday", "last week") will be REJE
     return f"""Extract HIGH-VALUE, PERSISTENT knowledge from this conversation.
 {timestamp_section}
 
-**CRITICAL RULE: Extract ONLY from lines starting with ">>> USER:"**
-- These are the user's actual words - the ONLY source of truth
-- IGNORE all ASSISTANT lines completely
-- Do NOT infer, expand, or modify what the user said
+**SOURCE RULES:**
+- Lines starting with ">>> USER:" are the user's actual words — the primary source of truth
+- DO extract factual information communicated by the assistant (dates, appointments, confirmations)
+- Do NOT extract assistant suggestions, recommendations, or hypotheticals as user facts
+- Treat assistant suggestions about user intent as speculative — never encode them as facts
+- Attribute preferences only to explicit user claims — never to assistant questions or reactions
 - Preserve the user's exact phrasing and technical terms
 
 <episode_context>
@@ -318,8 +325,10 @@ Statements with unresolved relative time ("yesterday", "last week") will be REJE
 
     return f"""Extract valuable knowledge by comparing actual conversation with predicted content.
 {timestamp_section}
-**CRITICAL: Extract ONLY from lines starting with ">>> USER:" - these are the user's actual words.**
-**IGNORE all ASSISTANT lines - those are suggestions, not user facts.**
+**SOURCE RULES:**
+- Lines starting with ">>> USER:" are the user's actual words — the primary source of truth.
+- DO extract factual info communicated by the assistant (dates, appointments, confirmations).
+- Do NOT extract assistant suggestions, recommendations, or hypotheticals as user facts.
 
 <prediction>
 {prediction}

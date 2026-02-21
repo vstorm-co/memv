@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import logging
-import re
 from typing import TYPE_CHECKING
 
 from memv.models import (
@@ -12,21 +11,12 @@ from memv.models import (
     Message,
     SemanticKnowledge,
 )
-from memv.processing.temporal import backfill_temporal_fields, contains_relative_time
+from memv.processing.temporal import backfill_temporal_fields
 
 if TYPE_CHECKING:
     from memv.memory._lifecycle import LifecycleManager
 
 logger = logging.getLogger(__name__)
-
-# Compiled regexes for validation checks
-_THIRD_PERSON_RE = re.compile(r"^[Uu]ser\b")
-_FIRST_PERSON_RE = re.compile(r"(?<!/)\b(I(?!/)|[Mm][Yy]|[Mm][Ee]|[Ww][Ee]|[Oo][Uu][Rr])\b")
-# Requires infinitive ("was advised to") to avoid rejecting legitimate facts like "User was given a promotion"
-_ASSISTANT_SOURCE_RE = re.compile(
-    r"\b(?:was|were)\s+(?:advised|suggested|recommended|told|instructed|encouraged)\s+to\b",
-    re.IGNORECASE,
-)
 
 
 class Pipeline:
@@ -218,32 +208,9 @@ class Pipeline:
         return stored_count
 
     def _validate_extraction(self, item: ExtractedKnowledge) -> bool:
-        """Filter extractions that are low-confidence or not self-contained.
-
-        Scope: only User-subject statements pass. Third-party facts ("Bob prefers
-        Postgres") are intentionally dropped — the knowledge base stores facts
-        about the user, not about people mentioned in conversation.
-        """
+        """Filter low-confidence extractions."""
         if item.confidence < 0.7:
             logger.debug("Rejected (low confidence %.2f): %s", item.confidence, item.statement[:60])
-            return False
-
-        stmt = item.statement
-
-        if not _THIRD_PERSON_RE.match(stmt):
-            logger.debug("Rejected (not third-person): %s", stmt[:60])
-            return False
-
-        if _FIRST_PERSON_RE.search(stmt):
-            logger.debug("Rejected (first-person pronoun): %s", stmt[:60])
-            return False
-
-        if contains_relative_time(stmt):
-            logger.debug("Rejected (unresolved relative time): %s", stmt[:60])
-            return False
-
-        if _ASSISTANT_SOURCE_RE.search(stmt):
-            logger.debug("Rejected (assistant-sourced): %s", stmt[:60])
             return False
 
         return True
