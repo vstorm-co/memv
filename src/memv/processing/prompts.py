@@ -301,7 +301,7 @@ Topic: {episode_title}
 ## Output Format
 
 For each extracted item, specify:
-- statement: A clean, declarative fact about the user (third-person: "User...", not "I...")
+- statement: A concrete, self-contained fact from the conversation (see SOURCE RULES above)
 - knowledge_type: "new"
 - temporal_info: Human-readable description if mentioned ("since January 2024", "until next month")
 - valid_at: ISO 8601 datetime when fact became true, or null if unknown/always true (e.g., "2024-01-01T00:00:00Z")

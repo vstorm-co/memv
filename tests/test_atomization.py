@@ -109,6 +109,9 @@ async def test_accepts_assistant_communicated_fact(tmp_path):
         count = await memory.process("user1")
         assert count == 1
 
+        result = await memory.retrieve("dentist appointment", user_id="user1")
+        assert "March 15, 2024" in result.retrieved_knowledge[0].statement
+
 
 async def test_confidence_boundary(tmp_path):
     """Confidence exactly at 0.7 passes, below does not."""

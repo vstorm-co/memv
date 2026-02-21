@@ -158,7 +158,7 @@ class Pipeline:
 
         # 6. Backfill temporal fields from temporal_info
         for item in extracted:
-            if item.temporal_info and (item.valid_at is None or item.invalid_at is None):
+            if item.temporal_info:
                 item.valid_at, item.invalid_at = backfill_temporal_fields(
                     item.temporal_info,
                     item.valid_at,
