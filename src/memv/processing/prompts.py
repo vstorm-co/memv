@@ -66,12 +66,12 @@ Do NOT extract:
 - Obvious or common knowledge
 - Speculative or uncertain claims
 - Conversation events ("User asked about X", "User requested Y") - extract the FACT, not the action
-- Assistant-sourced knowledge ("was advised to", "was suggested to", "was recommended to")
 
 **CRITICAL SOURCE RULES - READ CAREFULLY:**
 - Extract facts the user explicitly stated in their own messages
 - DO extract factual information communicated by the assistant (dates, appointments, confirmations, scheduled events)
-- NEVER extract assistant suggestions, recommendations, or code examples as user facts
+- NEVER extract assistant suggestions, recommendations, or hypotheticals as user facts
+  ("was advised to", "was suggested to", "was recommended to")
 - Treat assistant suggestions about user intent as speculative — never encode them as facts
 - NEVER attribute intent/action/statement to user if it originated in a hypothetical/suggestion/conditional from the assistant
 - Ignore assistant-led topics unless user acts on them
@@ -236,7 +236,7 @@ def cold_start_extraction_prompt(episode_title: str, original_messages: list[dic
 {reference_timestamp}
 </reference_timestamp>
 You MUST resolve ALL relative dates using this timestamp.
-Statements with unresolved relative time ("yesterday", "last week") will be REJECTED.
+Statements with unresolved relative time ("yesterday", "last week") are INVALID — resolve them or omit.
 """
 
     return f"""Extract HIGH-VALUE, PERSISTENT knowledge from this conversation.
@@ -320,7 +320,7 @@ def extraction_prompt_with_prediction(prediction: str, conversation: str, refere
 {reference_timestamp}
 </reference_timestamp>
 You MUST resolve ALL relative dates using this timestamp.
-Statements with unresolved relative time ("yesterday", "last week") will be REJECTED.
+Statements with unresolved relative time ("yesterday", "last week") are INVALID — resolve them or omit.
 """
 
     return f"""Extract valuable knowledge by comparing actual conversation with predicted content.
@@ -380,7 +380,7 @@ Focus on SPECIFIC DETAILS even if the general topic was predicted:
 ## Output Format
 
 For each extracted item, specify:
-- statement: A fact the USER explicitly stated (not assistant suggestions)
+- statement: A concrete, self-contained fact from the conversation (see SOURCE RULES above)
 - knowledge_type: "new" if entirely new, "update" if refines existing, "contradiction" if conflicts
 - temporal_info: Human-readable description if mentioned ("since January 2024", "until next month")
 - valid_at: ISO 8601 datetime when fact became true, or null if unknown/always true (e.g., "2024-01-01T00:00:00Z")

@@ -92,7 +92,15 @@ async def test_accepts_non_user_subject(tmp_path):
     llm.set_responses("generate", [_episode_json()])
     llm.set_responses(
         "generate_structured",
-        [_extraction([ExtractedKnowledge(statement="The appointment was moved to March 15", knowledge_type="new", confidence=0.9)])],
+        [
+            _extraction(
+                [
+                    ExtractedKnowledge(
+                        statement="User's dentist appointment was moved to March 15, 2024", knowledge_type="new", confidence=0.9
+                    )
+                ]
+            )
+        ],
     )
 
     memory = _make_memory(tmp_path, llm, embedder)
@@ -187,11 +195,11 @@ class TestPromptContent:
 
     def test_cold_start_contains_strong_timestamp_wording(self):
         prompt = cold_start_extraction_prompt("Test", [{"role": "user", "content": "hi"}], "2024-06-15T12:00:00Z")
-        assert "will be REJECTED" in prompt
+        assert "are INVALID" in prompt
 
     def test_warm_extraction_contains_strong_timestamp_wording(self):
         prompt = extraction_prompt_with_prediction("prediction", ">>> USER: hi", "2024-06-15T12:00:00Z")
-        assert "will be REJECTED" in prompt
+        assert "are INVALID" in prompt
 
     def test_atomization_rules_constant_exists(self):
         assert "Self-Contained Statement Rules" in ATOMIZATION_RULES
