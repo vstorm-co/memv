@@ -17,7 +17,7 @@ _RELATIVE_PATTERNS = re.compile(
     r"\b("
     r"yesterday|today|tomorrow"
     r"|(?:last|next|this)\s+(?:week|month|year|monday|tuesday|wednesday|thursday|friday|saturday|sunday)"
-    r"|recently|soon|later|earlier"
+    r"|recently|soon"
     r"|\d+\s+(?:days?|weeks?|months?|years?)\s+(?:ago|from\s+now)"
     r")\b",
     re.IGNORECASE,
@@ -40,14 +40,16 @@ _RELATIVE_OFFSETS: dict[str, relativedelta] = {
 }
 
 # N units ago / from now
+_WEEKDAY_NAMES = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
+
 _N_UNITS_PATTERN = re.compile(
     r"(\d+)\s+(days?|weeks?|months?|years?)\s+(ago|from\s+now)",
     re.IGNORECASE,
 )
 
 # Backfill patterns for temporal_info strings
-_SINCE_PATTERN = re.compile(r"(?:since|from|starting|began?)\s+(.+?)(?:\s*$|\s*(?:to|until|through)\s+)", re.IGNORECASE)
-_UNTIL_PATTERN = re.compile(r"(?:until|to|through|ending|ended?)\s+(.+?)$", re.IGNORECASE)
+_SINCE_PATTERN = re.compile(r"(?:since|from|starting|began)\s+(.+?)(?:\s*$|\s*(?:to|until|through)\s+)", re.IGNORECASE)
+_UNTIL_PATTERN = re.compile(r"(?:until|through|ending|ended?)\s+(.+?)$", re.IGNORECASE)
 _FROM_TO_PATTERN = re.compile(r"(?:from|since)\s+(.+?)\s+(?:to|until|through)\s+(.+?)$", re.IGNORECASE)
 
 
@@ -71,9 +73,8 @@ def parse_temporal_expression(text: str, reference: datetime) -> datetime | None
 
     # "last/next <weekday>" patterns
     for prefix, direction in [("last", -1), ("next", 1)]:
-        for day_name in ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]:
+        for target_weekday, day_name in enumerate(_WEEKDAY_NAMES):
             if normalized == f"{prefix} {day_name}":
-                target_weekday = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"].index(day_name)
                 days_diff = (reference.weekday() - target_weekday) % 7
                 if direction == -1:
                     days_diff = days_diff or 7

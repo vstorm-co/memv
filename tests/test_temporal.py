@@ -58,6 +58,12 @@ class TestContainsRelativeTime:
     def test_case_insensitive(self):
         assert contains_relative_time("User started YESTERDAY")
 
+    def test_earlier_as_adjective_not_flagged(self):
+        assert not contains_relative_time("User prefers the earlier version of Python")
+
+    def test_later_as_adjective_not_flagged(self):
+        assert not contains_relative_time("User upgraded to a later release of Node")
+
 
 # ---------------------------------------------------------------------------
 # parse_temporal_expression
@@ -223,3 +229,25 @@ class TestBackfillTemporalFields:
         assert valid_at is not None
         assert valid_at == datetime(2024, 6, 14, 12, 0, 0, tzinfo=timezone.utc)
         assert invalid_at is None
+
+    def test_bare_to_not_matched_as_until(self):
+        # "related to data pipelines" should not trigger _UNTIL_PATTERN
+        valid_at, invalid_at = backfill_temporal_fields(
+            "related to data pipelines",
+            None,
+            None,
+            _ref(),
+        )
+        assert valid_at is None
+        assert invalid_at is None
+
+    def test_began_prefix(self):
+        valid_at, invalid_at = backfill_temporal_fields(
+            "began January 2024",
+            None,
+            None,
+            _ref(),
+        )
+        assert valid_at is not None
+        assert valid_at.year == 2024
+        assert valid_at.month == 1

@@ -120,6 +120,60 @@ async def test_accepts_clean_statement(tmp_path):
         assert count == 1
 
 
+async def test_rejects_assistant_sourced(tmp_path):
+    """Statement with 'was advised to' pattern gets filtered."""
+    llm = MockLLM()
+    embedder = MockEmbedder()
+
+    llm.set_responses("generate", [_episode_json()])
+    llm.set_responses(
+        "generate_structured",
+        [_extraction([ExtractedKnowledge(statement="User was advised to try Emacs", knowledge_type="new", confidence=0.9)])],
+    )
+
+    memory = _make_memory(tmp_path, llm, embedder)
+    async with memory:
+        await memory.add_exchange("user1", "The assistant told me to try Emacs", "Sure!", timestamp=_ts())
+        count = await memory.process("user1")
+        assert count == 0
+
+
+async def test_accepts_passive_without_infinitive(tmp_path):
+    """'was given a promotion' is NOT assistant-sourced — should pass."""
+    llm = MockLLM()
+    embedder = MockEmbedder()
+
+    llm.set_responses("generate", [_episode_json()])
+    llm.set_responses(
+        "generate_structured",
+        [_extraction([ExtractedKnowledge(statement="User was given a promotion", knowledge_type="new", confidence=0.9)])],
+    )
+
+    memory = _make_memory(tmp_path, llm, embedder)
+    async with memory:
+        await memory.add_exchange("user1", "I was given a promotion", "Congrats!", timestamp=_ts())
+        count = await memory.process("user1")
+        assert count == 1
+
+
+async def test_accepts_lowercase_user(tmp_path):
+    """LLM may output lowercase 'user' — should still pass third-person check."""
+    llm = MockLLM()
+    embedder = MockEmbedder()
+
+    llm.set_responses("generate", [_episode_json()])
+    llm.set_responses(
+        "generate_structured",
+        [_extraction([ExtractedKnowledge(statement="user prefers Python", knowledge_type="new", confidence=0.9)])],
+    )
+
+    memory = _make_memory(tmp_path, llm, embedder)
+    async with memory:
+        await memory.add_exchange("user1", "I prefer Python", "Nice!", timestamp=_ts())
+        count = await memory.process("user1")
+        assert count == 1
+
+
 async def test_confidence_filter_unchanged(tmp_path):
     """Low-confidence items still rejected (regression check)."""
     llm = MockLLM()
