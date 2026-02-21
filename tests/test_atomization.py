@@ -52,7 +52,7 @@ async def test_rejects_first_person(tmp_path):
     llm.set_responses("generate", [_episode_json()])
     llm.set_responses(
         "generate_structured",
-        [_extraction([ExtractedKnowledge(statement="I like Python", knowledge_type="new", confidence=0.9)])],
+        [_extraction([ExtractedKnowledge(statement="User mentioned that my team uses React", knowledge_type="new", confidence=0.9)])],
     )
 
     memory = _make_memory(tmp_path, llm, embedder)
