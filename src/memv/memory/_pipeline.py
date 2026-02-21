@@ -22,10 +22,6 @@ logger = logging.getLogger(__name__)
 # Compiled regexes for validation checks
 _THIRD_PERSON_RE = re.compile(r"^User\b")
 _FIRST_PERSON_RE = re.compile(r"(?<!/)\b(I(?!/)|[Mm][Yy]|[Mm][Ee]|[Ww][Ee]|[Oo][Uu][Rr])\b")
-_ASSISTANT_SOURCE_RE = re.compile(
-    r"\b(?:was|were)\s+(?:advised|suggested|recommended|told|instructed|encouraged|shown|given)\b",
-    re.IGNORECASE,
-)
 
 
 class Pipeline:
@@ -239,10 +235,6 @@ class Pipeline:
 
         if contains_relative_time(stmt):
             logger.debug("Rejected (unresolved relative time): %s", stmt[:60])
-            return False
-
-        if _ASSISTANT_SOURCE_RE.search(stmt):
-            logger.debug("Rejected (assistant-sourced): %s", stmt[:60])
             return False
 
         return True

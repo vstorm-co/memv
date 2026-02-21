@@ -98,42 +98,6 @@ async def test_rejects_relative_time(tmp_path):
         assert count == 0
 
 
-async def test_rejects_assistant_sourced(tmp_path):
-    """Statement with 'was advised/suggested/recommended/told/instructed' gets filtered."""
-    llm = MockLLM()
-    embedder = MockEmbedder()
-
-    llm.set_responses("generate", [_episode_json()])
-    llm.set_responses(
-        "generate_structured",
-        [_extraction([ExtractedKnowledge(statement="User was advised to use Docker", knowledge_type="new", confidence=0.9)])],
-    )
-
-    memory = _make_memory(tmp_path, llm, embedder)
-    async with memory:
-        await memory.add_exchange("user1", "hi", "Use Docker!", timestamp=_ts())
-        count = await memory.process("user1")
-        assert count == 0
-
-
-async def test_rejects_assistant_sourced_told(tmp_path):
-    """'was told to' variant also gets filtered."""
-    llm = MockLLM()
-    embedder = MockEmbedder()
-
-    llm.set_responses("generate", [_episode_json()])
-    llm.set_responses(
-        "generate_structured",
-        [_extraction([ExtractedKnowledge(statement="User was told to migrate to Postgres", knowledge_type="new", confidence=0.9)])],
-    )
-
-    memory = _make_memory(tmp_path, llm, embedder)
-    async with memory:
-        await memory.add_exchange("user1", "hi", "Migrate to Postgres!", timestamp=_ts())
-        count = await memory.process("user1")
-        assert count == 0
-
-
 async def test_accepts_clean_statement(tmp_path):
     """Properly atomized statement passes all checks."""
     llm = MockLLM()
