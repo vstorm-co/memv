@@ -84,8 +84,8 @@ async def test_accepts_high_confidence(tmp_path):
         assert count == 1
 
 
-async def test_accepts_non_user_subject(tmp_path):
-    """Statements not starting with 'User' are accepted."""
+async def test_accepts_assistant_communicated_fact(tmp_path):
+    """Facts communicated by the assistant (dates, appointments) are accepted."""
     llm = MockLLM()
     embedder = MockEmbedder()
 
@@ -133,6 +133,9 @@ async def test_confidence_boundary(tmp_path):
         await memory.add_exchange("user1", "I work at Vstorm and like tea", "Nice!", timestamp=_ts())
         count = await memory.process("user1")
         assert count == 1
+
+        result = await memory.retrieve("Vstorm", user_id="user1")
+        assert result.retrieved_knowledge[0].statement == "User works at Vstorm"
 
 
 # ---------------------------------------------------------------------------
