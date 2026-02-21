@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 # Compiled regexes for validation checks
 _THIRD_PERSON_RE = re.compile(r"^User\b")
-_FIRST_PERSON_RE = re.compile(r"\b(I|[Mm][Yy]|[Mm][Ee]|[Ww][Ee]|[Oo][Uu][Rr])\b")
+_FIRST_PERSON_RE = re.compile(r"(?<!/)\b(I(?!/)|[Mm][Yy]|[Mm][Ee]|[Ww][Ee]|[Oo][Uu][Rr])\b")
 _ASSISTANT_SOURCE_RE = re.compile(
     r"\b(?:was|were)\s+(?:advised|suggested|recommended|told|instructed|encouraged|shown|given)\b",
     re.IGNORECASE,
@@ -217,7 +217,12 @@ class Pipeline:
         return stored_count
 
     def _validate_extraction(self, item: ExtractedKnowledge) -> bool:
-        """Filter extractions that are low-confidence or not self-contained."""
+        """Filter extractions that are low-confidence or not self-contained.
+
+        Scope: only User-subject statements pass. Third-party facts ("Bob prefers
+        Postgres") are intentionally dropped — the knowledge base stores facts
+        about the user, not about people mentioned in conversation.
+        """
         if item.confidence < 0.7:
             logger.debug("Rejected (low confidence %.2f): %s", item.confidence, item.statement[:60])
             return False

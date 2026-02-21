@@ -128,6 +128,8 @@ def backfill_temporal_fields(
                 invalid_at = parsed.replace(tzinfo=timezone.utc) if parsed.tzinfo is None else parsed
         return valid_at, invalid_at
 
+    # "from X to Y" handled above — remaining checks are single-endpoint patterns
+
     # "since X" → valid_at
     if valid_at is None:
         since = _SINCE_PATTERN.search(temporal_info)
