@@ -22,6 +22,7 @@ dependencies = [
     "openai>=2.15.0",
     "pydantic>=2.12.5",
     "pydantic-ai>=1.43.0",
+    "python-dateutil>=2.9.0",
     "sqlite-vec>=0.1.6",
     "textual>=3.5.0",
 ]

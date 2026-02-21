@@ -2321,6 +2321,7 @@ dependencies = [
     { name = "openai" },
     { name = "pydantic" },
     { name = "pydantic-ai" },
+    { name = "python-dateutil" },
     { name = "sqlite-vec" },
     { name = "textual" },
 ]
@@ -2357,6 +2358,7 @@ requires-dist = [
     { name = "openai", specifier = ">=2.15.0" },
     { name = "pydantic", specifier = ">=2.12.5" },
     { name = "pydantic-ai", specifier = ">=1.43.0" },
+    { name = "python-dateutil", specifier = ">=2.9.0" },
     { name = "sqlite-vec", specifier = ">=0.1.6" },
     { name = "textual", specifier = ">=3.5.0" },
 ]

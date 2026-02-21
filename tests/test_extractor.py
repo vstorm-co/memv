@@ -155,3 +155,40 @@ async def test_temporal_fields_preserved():
     assert result[0].valid_at == valid
     assert result[0].invalid_at == invalid
     assert result[0].temporal_info == "from Jan 2024 to Jan 2025"
+
+
+async def test_cold_start_prompt_contains_atomization_rules():
+    """Cold start extraction prompt includes ATOMIZATION_RULES."""
+    llm = MockLLM()
+    llm.set_responses("generate_structured", [ExtractionResponse(extracted=[])])
+    extractor = PredictCalibrateExtractor(llm)
+
+    await extractor.extract(_episode(), existing_knowledge=[])
+
+    prompt = llm.calls["generate_structured"][0][0]
+    assert "Self-Contained Statement Rules" in prompt
+
+
+async def test_warm_prompt_contains_atomization_rules():
+    """Warm extraction prompt includes ATOMIZATION_RULES."""
+    llm = MockLLM()
+    llm.set_responses("generate", ["prediction"])
+    llm.set_responses("generate_structured", [ExtractionResponse(extracted=[])])
+    extractor = PredictCalibrateExtractor(llm)
+
+    await extractor.extract(_episode(), existing_knowledge=[_knowledge()])
+
+    prompt = llm.calls["generate_structured"][0][0]
+    assert "Self-Contained Statement Rules" in prompt
+
+
+async def test_prompt_contains_reference_timestamp():
+    """Both extraction paths include reference_timestamp in the prompt."""
+    llm = MockLLM()
+    llm.set_responses("generate_structured", [ExtractionResponse(extracted=[])])
+    extractor = PredictCalibrateExtractor(llm)
+
+    await extractor.extract(_episode(), existing_knowledge=[])
+
+    prompt = llm.calls["generate_structured"][0][0]
+    assert "reference_timestamp" in prompt

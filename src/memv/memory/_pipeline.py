@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import re
 from typing import TYPE_CHECKING
 
 from memv.models import (
@@ -11,11 +12,16 @@ from memv.models import (
     Message,
     SemanticKnowledge,
 )
+from memv.processing.temporal import backfill_temporal_fields, contains_relative_time
 
 if TYPE_CHECKING:
     from memv.memory._lifecycle import LifecycleManager
 
 logger = logging.getLogger(__name__)
+
+# Compiled regexes for validation checks
+_FIRST_PERSON_RE = re.compile(r"\b(I|my|me|we|our)\b")
+_ASSISTANT_SOURCE_RE = re.compile(r"\b(?:was|were)\s+(?:advised|suggested|recommended)\b", re.IGNORECASE)
 
 
 class Pipeline:
@@ -155,10 +161,20 @@ class Pipeline:
             existing_knowledge=existing.retrieved_knowledge,
         )
 
-        # 6. Filter out low-quality extractions
+        # 6. Backfill temporal fields from temporal_info
+        for item in extracted:
+            if item.temporal_info and (item.valid_at is None or item.invalid_at is None):
+                item.valid_at, item.invalid_at = backfill_temporal_fields(
+                    item.temporal_info,
+                    item.valid_at,
+                    item.invalid_at,
+                    episode.end_time,
+                )
+
+        # 7. Filter out low-quality extractions
         extracted = [item for item in extracted if self._validate_extraction(item)]
 
-        # 7. Convert to SemanticKnowledge and store with embeddings
+        # 8. Convert to SemanticKnowledge and store with embeddings
         if not extracted:
             return 0
 
@@ -166,7 +182,7 @@ class Pipeline:
         statements = [item.statement for item in extracted]
         embeddings = await self._lc.embedder.embed_batch(statements)
 
-        # 8. Process each extracted item
+        # 9. Process each extracted item
         stored_count = 0
         for item, embedding in zip(extracted, embeddings, strict=True):
             # Handle contradictions
@@ -197,9 +213,30 @@ class Pipeline:
         return stored_count
 
     def _validate_extraction(self, item: ExtractedKnowledge) -> bool:
-        """Filter low-confidence extractions."""
+        """Filter extractions that are low-confidence or not self-contained."""
+        stmt = item.statement
+        preview = stmt[:60]
+
         if item.confidence < 0.7:
+            logger.debug("Rejected (low confidence %.2f): %s", item.confidence, preview)
             return False
+
+        if not stmt.startswith("User"):
+            logger.debug("Rejected (not third-person): %s", preview)
+            return False
+
+        if _FIRST_PERSON_RE.search(stmt):
+            logger.debug("Rejected (first-person pronoun): %s", preview)
+            return False
+
+        if contains_relative_time(stmt):
+            logger.debug("Rejected (unresolved relative time): %s", preview)
+            return False
+
+        if _ASSISTANT_SOURCE_RE.search(stmt):
+            logger.debug("Rejected (assistant-sourced): %s", preview)
+            return False
+
         return True
 
     async def _is_duplicate_knowledge(self, embedding: list[float], user_id: str) -> tuple[bool, float]:

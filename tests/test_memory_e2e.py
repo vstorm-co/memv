@@ -63,7 +63,7 @@ async def test_process_returns_count(tmp_path):
     embedder = MockEmbedder()
 
     llm.set_responses("generate", [_episode_json()])
-    llm.set_responses("generate_structured", [_extraction(["Fact A", "Fact B"])])
+    llm.set_responses("generate_structured", [_extraction(["User knows Fact A", "User knows Fact B"])])
 
     memory = _make_memory(tmp_path, llm, embedder, enable_knowledge_dedup=False)
     async with memory:
@@ -151,7 +151,7 @@ async def test_clear_user(tmp_path):
     embedder = MockEmbedder()
 
     llm.set_responses("generate", [_episode_json()])
-    llm.set_responses("generate_structured", [_extraction(["Fact to delete"])])
+    llm.set_responses("generate_structured", [_extraction(["User has a fact to delete"])])
 
     memory = _make_memory(tmp_path, llm, embedder)
     async with memory:
@@ -162,7 +162,7 @@ async def test_clear_user(tmp_path):
         assert counts["messages"] >= 2
         assert counts["episodes"] >= 1
 
-        result = await memory.retrieve("Fact to delete", user_id="user1")
+        result = await memory.retrieve("User has a fact to delete", user_id="user1")
         assert len(result.retrieved_knowledge) == 0
 
 
@@ -197,7 +197,7 @@ async def test_auto_process_at_threshold(tmp_path):
             _episode_json("Auto", "Auto processed"),  # episode gen
         ],
     )
-    llm.set_responses("generate_structured", [_extraction(["Auto fact"])])
+    llm.set_responses("generate_structured", [_extraction(["User has auto fact"])])
 
     memory = _make_memory(tmp_path, llm, embedder, auto_process=True, batch_threshold=4)
     async with memory:
@@ -219,7 +219,7 @@ async def test_flush_forces_processing(tmp_path):
     embedder = MockEmbedder()
 
     llm.set_responses("generate", [_episode_json("Flushed", "Flushed episode")])
-    llm.set_responses("generate_structured", [_extraction(["Flushed fact"])])
+    llm.set_responses("generate_structured", [_extraction(["User has flushed fact"])])
 
     memory = _make_memory(tmp_path, llm, embedder, auto_process=True, batch_threshold=100)
     async with memory:
@@ -227,6 +227,38 @@ async def test_flush_forces_processing(tmp_path):
         # Below threshold (2 < 100), but flush forces processing
         count = await memory.flush("user1")
         assert count == 1
+
+
+async def test_atomization_filters_bad_statements(tmp_path):
+    """LLM returns mix of good and bad statements — only atomized ones survive."""
+    llm = MockLLM()
+    embedder = MockEmbedder()
+
+    llm.set_responses("generate", [_episode_json("Mixed", "Mixed quality")])
+    llm.set_responses(
+        "generate_structured",
+        [
+            ExtractionResponse(
+                extracted=[
+                    ExtractedKnowledge(statement="User prefers Vim", knowledge_type="new", confidence=0.9),
+                    ExtractedKnowledge(statement="I like Vim", knowledge_type="new", confidence=0.9),
+                    ExtractedKnowledge(statement="User started yesterday", knowledge_type="new", confidence=0.9),
+                    ExtractedKnowledge(statement="He uses Neovim", knowledge_type="new", confidence=0.9),
+                    ExtractedKnowledge(statement="User was advised to try Emacs", knowledge_type="new", confidence=0.9),
+                ]
+            )
+        ],
+    )
+
+    memory = _make_memory(tmp_path, llm, embedder)
+    async with memory:
+        await memory.add_exchange("user1", "I prefer Vim", "Nice!", timestamp=_ts())
+        count = await memory.process("user1")
+        # Only "User prefers Vim" should survive all filters
+        assert count == 1
+
+        result = await memory.retrieve("Vim", user_id="user1")
+        assert result.retrieved_knowledge[0].statement == "User prefers Vim"
 
 
 async def test_dedup_skips_duplicate(tmp_path):

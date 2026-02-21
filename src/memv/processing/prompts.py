@@ -66,6 +66,7 @@ Do NOT extract:
 - Obvious or common knowledge
 - Speculative or uncertain claims
 - Conversation events ("User asked about X", "User requested Y") - extract the FACT, not the action
+- Assistant-sourced knowledge ("was advised to", "was suggested to", "was recommended to")
 
 **CRITICAL SOURCE RULE - READ CAREFULLY:**
 - ONLY extract facts the USER explicitly stated in their own messages
@@ -75,6 +76,34 @@ Do NOT extract:
 - The user ASKING about something is NOT the same as the user USING it
 - Look for USER messages containing "I use", "I prefer", "I like", "I work with", "my project uses"
 - Extract opinions WITH reasons when stated: "User finds X too basic" or "User likes Y because it's intuitive"
+"""
+
+# =============================================================================
+# ATOMIZATION RULES
+# Self-contained statement constraints for extraction quality.
+# =============================================================================
+
+ATOMIZATION_RULES = """
+## Self-Contained Statement Rules (MANDATORY)
+
+Every extracted statement MUST be independently interpretable without conversation context.
+
+**PROHIBIT in output statements:**
+- Pronouns as subjects: "he", "she", "they", "it" — use the actual name or "User"
+- Relative time: "yesterday", "today", "tomorrow", "last week", "next month", "recently", "soon"
+- Ambiguous references: "the project", "the tool", "that place", "the same thing"
+- First person: "I", "my", "me", "we", "our"
+
+**REQUIRE in output statements:**
+- Absolute dates when temporal info exists: "on 2024-06-15", not "yesterday"
+- Specific names: "User's React project at Vstorm", not "the project"
+- Third person with "User" as subject: "User prefers Python", not "I prefer Python"
+
+**Coreference resolution — resolve BEFORE writing the statement:**
+- "my kids" → "User's children"
+- "he said" → "[Name from conversation] said"
+- "this place" → "[specific location mentioned]"
+- "the same library" → "[library name]"
 """
 
 # =============================================================================
@@ -201,7 +230,8 @@ def cold_start_extraction_prompt(episode_title: str, original_messages: list[dic
 <reference_timestamp>
 {reference_timestamp}
 </reference_timestamp>
-Use this to resolve relative dates ("yesterday", "next week", "last month") into absolute ISO 8601 dates.
+You MUST resolve ALL relative dates using this timestamp.
+Statements with unresolved relative time ("yesterday", "last week") will be REJECTED.
 """
 
     return f"""Extract HIGH-VALUE, PERSISTENT knowledge from this conversation.
@@ -227,6 +257,8 @@ Topic: {episode_title}
 
 {EXCLUSIONS}
 
+{ATOMIZATION_RULES}
+
 ## Examples
 
 ### GOOD Extractions:
@@ -240,9 +272,13 @@ Topic: {episode_title}
 - "User finds Faiss too basic for their needs"
 - "User had problems with Milvus due to hosting overhead"
 - "User uses JavaScript" (correct third-person form)
+- "User started using FastAPI on 2024-06-14" (absolute date, not "yesterday")
+- "User moved to Berlin in 2023" (resolved, not "last year")
 
 ### BAD Extractions:
 - "I use JavaScript" (raw copy - should be "User uses JavaScript")
+- "He started using it yesterday" (unresolved pronoun + relative time → "User started using FastAPI on 2024-06-14")
+- "They moved there last year" (unresolved pronoun + relative time → "User moved to Berlin in 2023")
 - "User requested code for X" (conversation event, not fact about user)
 - "User discussed X" (conversation event)
 - "User asked about X" (conversation event - extract the preference instead)
@@ -250,6 +286,7 @@ Topic: {episode_title}
 - Expanding ANY acronym the user used (RAG, API, LLM, PDF, etc.)
 - "User is interested in machine learning" (too vague)
 - "User received advice about X" (conversation event)
+- "User was advised to use X" (assistant-sourced, not user fact)
 - "User prefers Python" when assistant suggested Python but user didn't confirm (VIOLATES SOURCE RULE)
 - "User uses library X" when assistant recommended it but user didn't adopt it (VIOLATES SOURCE RULE)
 - "User is using Python" when assistant provided Python code but user said "I use JavaScript" (WRONG - user stated JavaScript)
@@ -275,7 +312,8 @@ def extraction_prompt_with_prediction(prediction: str, conversation: str, refere
 <reference_timestamp>
 {reference_timestamp}
 </reference_timestamp>
-Use this to resolve relative dates ("yesterday", "next week", "last month") into absolute ISO 8601 dates.
+You MUST resolve ALL relative dates using this timestamp.
+Statements with unresolved relative time ("yesterday", "last week") will be REJECTED.
 """
 
     return f"""Extract valuable knowledge by comparing actual conversation with predicted content.
@@ -304,6 +342,8 @@ Focus on SPECIFIC DETAILS even if the general topic was predicted:
 
 {EXCLUSIONS}
 
+{ATOMIZATION_RULES}
+
 ## Examples
 
 ### GOOD Extractions (concrete facts):
@@ -314,12 +354,17 @@ Focus on SPECIFIC DETAILS even if the general topic was predicted:
 - "User likes Chroma because it's intuitive"
 - "User finds Faiss too basic"
 - "User had issues with Milvus due to hosting overhead"
+- "User started using FastAPI on 2024-06-14" (absolute date, not "yesterday")
+- "User moved to Berlin in 2023" (resolved, not "last year")
 
 ### BAD Extractions:
+- "He started using it yesterday" (unresolved pronoun + relative time)
+- "They moved there last year" (unresolved pronoun + relative time)
 - "User is interested in X" (too vague)
 - "User asked about X" (conversation event, not fact)
 - "User asked for suggestions on X" (conversation event - extract the preference instead)
 - "User discussed X" (conversation event)
+- "User was advised to use X" (assistant-sourced, not user fact)
 - "User prefers X" when assistant suggested X but user didn't confirm (VIOLATES SOURCE RULE)
 - "User uses Python" when assistant provided Python code but user said they use JavaScript (WRONG)
 
