@@ -17,10 +17,11 @@ class KnowledgeStore(StoreBase):
     async def add(self, knowledge: SemanticKnowledge) -> None:
         await self._conn.execute(
             """INSERT INTO semantic_knowledge
-            (id, statement, source_episode_id, created_at, importance_score, embedding, valid_at, invalid_at, expired_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (id, user_id, statement, source_episode_id, created_at, importance_score, embedding, valid_at, invalid_at, expired_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
                 str(knowledge.id),
+                knowledge.user_id,
                 knowledge.statement,
                 str(knowledge.source_episode_id),
                 int(knowledge.created_at.timestamp()),
@@ -131,6 +132,7 @@ class KnowledgeStore(StoreBase):
     def _row_to_knowledge(self, row: aiosqlite.Row) -> SemanticKnowledge:
         return SemanticKnowledge(
             id=UUID(row["id"]),
+            user_id=row["user_id"],
             statement=row["statement"],
             source_episode_id=UUID(row["source_episode_id"]),
             created_at=datetime.fromtimestamp(row["created_at"], tz=timezone.utc),
@@ -145,6 +147,7 @@ class KnowledgeStore(StoreBase):
         await self._conn.execute(
             """CREATE TABLE IF NOT EXISTS semantic_knowledge (
                 id TEXT PRIMARY KEY,
+                user_id TEXT,
                 statement TEXT,
                 source_episode_id TEXT,
                 created_at INTEGER,
@@ -157,8 +160,10 @@ class KnowledgeStore(StoreBase):
         )
         await self._conn.execute("CREATE INDEX IF NOT EXISTS idx_sk_episode ON semantic_knowledge(source_episode_id)")
         await self._migrate_add_bitemporal_columns()
+        await self._migrate_add_user_id_column()
         await self._conn.execute("CREATE INDEX IF NOT EXISTS idx_sk_valid_at ON semantic_knowledge(valid_at)")
         await self._conn.execute("CREATE INDEX IF NOT EXISTS idx_sk_expired_at ON semantic_knowledge(expired_at)")
+        await self._conn.execute("CREATE INDEX IF NOT EXISTS idx_sk_user_id ON semantic_knowledge(user_id)")
         await self._commit()
 
     async def _migrate_add_bitemporal_columns(self):
@@ -169,3 +174,20 @@ class KnowledgeStore(StoreBase):
         for col in ["valid_at", "invalid_at", "expired_at"]:
             if col not in columns:
                 await self._conn.execute(f"ALTER TABLE semantic_knowledge ADD COLUMN {col} INTEGER")
+
+    async def _migrate_add_user_id_column(self):
+        """Add user_id column and backfill from episodes if it doesn't exist."""
+        cursor = await self._conn.execute("PRAGMA table_info(semantic_knowledge)")
+        columns = {row["name"] for row in await cursor.fetchall()}
+
+        if "user_id" not in columns:
+            await self._conn.execute("ALTER TABLE semantic_knowledge ADD COLUMN user_id TEXT")
+            # Backfill from episodes table (if it exists and has data)
+            try:
+                await self._conn.execute(
+                    """UPDATE semantic_knowledge
+                    SET user_id = (SELECT user_id FROM episodes WHERE id = semantic_knowledge.source_episode_id)
+                    WHERE user_id IS NULL"""
+                )
+            except Exception:
+                pass  # episodes table may not exist in this connection

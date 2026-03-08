@@ -192,6 +192,7 @@ class Pipeline:
                     continue
 
             knowledge = SemanticKnowledge(
+                user_id=user_id,
                 statement=item.statement,
                 source_episode_id=episode.id,
                 importance_score=item.confidence,

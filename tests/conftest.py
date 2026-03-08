@@ -75,8 +75,11 @@ def make_episode(user_id="user1", title="Test Episode", content="A test episode.
     )
 
 
-def make_knowledge(episode_id=None, statement="User likes Python", embedding=None, valid_at=None, invalid_at=None, expired_at=None):
+def make_knowledge(
+    episode_id=None, user_id=None, statement="User likes Python", embedding=None, valid_at=None, invalid_at=None, expired_at=None
+):
     return SemanticKnowledge(
+        user_id=user_id,
         statement=statement,
         source_episode_id=episode_id or uuid4(),
         embedding=embedding,

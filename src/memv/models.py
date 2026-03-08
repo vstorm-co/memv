@@ -72,6 +72,7 @@ class BiTemporalValidity(BaseModel):
 
 class SemanticKnowledge(BaseModel):
     id: UUID = Field(default_factory=uuid4)
+    user_id: str | None = Field(default=None, description="The ID of the user this knowledge belongs to.")
     statement: str = Field(..., description="A declarative statement about the user or world generated from the conversation")
     source_episode_id: UUID = Field(..., description="The id of the episode that generated this knowledge")
     created_at: datetime = Field(
