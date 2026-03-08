@@ -95,6 +95,38 @@ class KnowledgeStore(StoreBase):
         rows = await cursor.fetchall()
         return [self._row_to_knowledge(row) for row in rows]
 
+    async def list_by_user(
+        self,
+        user_id: str,
+        limit: int = 50,
+        offset: int = 0,
+        include_expired: bool = False,
+    ) -> list[SemanticKnowledge]:
+        """List knowledge entries for a user with pagination."""
+        if include_expired:
+            cursor = await self._conn.execute(
+                "SELECT * FROM semantic_knowledge WHERE user_id = ? ORDER BY created_at DESC LIMIT ? OFFSET ?",
+                (user_id, limit, offset),
+            )
+        else:
+            cursor = await self._conn.execute(
+                "SELECT * FROM semantic_knowledge WHERE user_id = ? AND expired_at IS NULL ORDER BY created_at DESC LIMIT ? OFFSET ?",
+                (user_id, limit, offset),
+            )
+        rows = await cursor.fetchall()
+        return [self._row_to_knowledge(row) for row in rows]
+
+    async def count_by_user(self, user_id: str, include_expired: bool = False) -> int:
+        """Count knowledge entries for a user."""
+        if include_expired:
+            cursor = await self._conn.execute("SELECT COUNT(*) as cnt FROM semantic_knowledge WHERE user_id = ?", (user_id,))
+        else:
+            cursor = await self._conn.execute(
+                "SELECT COUNT(*) as cnt FROM semantic_knowledge WHERE user_id = ? AND expired_at IS NULL", (user_id,)
+            )
+        row = await cursor.fetchone()
+        return row["cnt"] if row else 0
+
     async def invalidate(self, knowledge_id: UUID | str) -> bool:
         """Mark knowledge as expired (superseded). Returns True if updated."""
         expired_at = int(datetime.now(timezone.utc).timestamp())
@@ -182,12 +214,11 @@ class KnowledgeStore(StoreBase):
 
         if "user_id" not in columns:
             await self._conn.execute("ALTER TABLE semantic_knowledge ADD COLUMN user_id TEXT")
-            # Backfill from episodes table (if it exists and has data)
             try:
                 await self._conn.execute(
                     """UPDATE semantic_knowledge
                     SET user_id = (SELECT user_id FROM episodes WHERE id = semantic_knowledge.source_episode_id)
                     WHERE user_id IS NULL"""
                 )
-            except Exception:
+            except aiosqlite.OperationalError:
                 pass  # episodes table may not exist in this connection

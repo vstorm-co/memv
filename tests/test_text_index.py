@@ -82,6 +82,34 @@ async def test_clear_user_empty(text_index):
     assert await text_index.clear_user("nobody") == 0
 
 
+async def test_delete(text_index):
+    uid = uuid4()
+    await text_index.add(uid, "python programming language", user_id="user1")
+
+    assert await text_index.delete(uid) is True
+
+    results = await text_index.search("python", top_k=5, user_id="user1")
+    assert uid not in results
+
+
+async def test_delete_nonexistent(text_index):
+    assert await text_index.delete(uuid4()) is False
+
+
+async def test_delete_preserves_others(text_index):
+    uid1 = uuid4()
+    uid2 = uuid4()
+    await text_index.add(uid1, "python language", user_id="user1")
+    await text_index.add(uid2, "javascript language", user_id="user1")
+
+    await text_index.delete(uid1)
+
+    results = await text_index.search("javascript", top_k=5, user_id="user1")
+    assert uid2 in results
+    results = await text_index.search("python", top_k=5, user_id="user1")
+    assert uid1 not in results
+
+
 def test_sanitize_fts_query(tmp_path):
     idx = TextIndex(str(tmp_path / "sanitize.db"))
     assert idx._sanitize_fts_query("hello world") == '"hello" "world"'

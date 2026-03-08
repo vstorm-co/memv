@@ -81,3 +81,30 @@ async def test_clear_user(vector_index):
 
 async def test_clear_user_empty(vector_index):
     assert await vector_index.clear_user("nobody") == 0
+
+
+async def test_delete(vector_index):
+    uid = uuid4()
+    await vector_index.add(uid, [1.0, 0.0, 0.0, 0.0], user_id="user1")
+
+    assert await vector_index.delete(uid) is True
+
+    results = await vector_index.search([1.0, 0.0, 0.0, 0.0], top_k=5, user_id="user1")
+    assert uid not in results
+
+
+async def test_delete_nonexistent(vector_index):
+    assert await vector_index.delete(uuid4()) is False
+
+
+async def test_delete_preserves_others(vector_index):
+    uid1 = uuid4()
+    uid2 = uuid4()
+    await vector_index.add(uid1, [1.0, 0.0, 0.0, 0.0], user_id="user1")
+    await vector_index.add(uid2, [0.0, 1.0, 0.0, 0.0], user_id="user1")
+
+    await vector_index.delete(uid1)
+
+    results = await vector_index.search([0.0, 1.0, 0.0, 0.0], top_k=5, user_id="user1")
+    assert uid2 in results
+    assert uid1 not in results

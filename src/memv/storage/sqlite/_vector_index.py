@@ -147,6 +147,19 @@ class VectorIndex(StoreBase):
         # Convert L2 distance to similarity score (higher = more similar)
         return [(UUID(row["uuid"]), 1.0 / (1.0 + row["distance"])) for row in rows]
 
+    async def delete(self, uuid: UUID) -> bool:
+        """Delete a single vector entry by UUID. Returns True if deleted."""
+        cursor = await self._conn.execute(f"SELECT rowid FROM {self._mapping_table} WHERE uuid = ?", (str(uuid),))
+        row = await cursor.fetchone()
+        if row is None:
+            return False
+
+        rowid = row["rowid"]
+        await self._conn.execute(f"DELETE FROM {self._vec_table} WHERE rowid = ?", (rowid,))
+        await self._conn.execute(f"DELETE FROM {self._mapping_table} WHERE rowid = ?", (rowid,))
+        await self._conn.commit()
+        return True
+
     async def clear_user(self, user_id: str) -> int:
         """Delete all vector entries for a user. Returns count of deleted entries."""
         # Get rowids to delete from vec table

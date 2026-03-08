@@ -6,13 +6,25 @@ from datetime import datetime
 from typing import TYPE_CHECKING
 
 from memv.config import MemoryConfig
-from memv.memory._api import add_exchange, add_message, clear_user, retrieve
+from memv.memory._api import (
+    add_exchange,
+    add_message,
+    clear_user,
+    delete_knowledge,
+    get_knowledge,
+    invalidate_knowledge,
+    list_knowledge,
+    retrieve,
+)
 from memv.memory._lifecycle import LifecycleManager
 from memv.memory._pipeline import Pipeline
 from memv.memory._task_manager import TaskManager
 from memv.models import Message, ProcessTask, RetrievalResult
 
 if TYPE_CHECKING:
+    from uuid import UUID
+
+    from memv.models import SemanticKnowledge
     from memv.protocols import EmbeddingClient, LLMClient
 
 
@@ -305,3 +317,29 @@ class Memory:
             Dict with counts of deleted items per category
         """
         return await clear_user(self._lifecycle, self._task_manager, user_id)
+
+    # -------------------------------------------------------------------------
+    # Knowledge CRUD
+    # -------------------------------------------------------------------------
+
+    async def list_knowledge(
+        self,
+        user_id: str,
+        limit: int = 50,
+        offset: int = 0,
+        include_expired: bool = False,
+    ) -> list[SemanticKnowledge]:
+        """List knowledge entries for a user with pagination."""
+        return await list_knowledge(self._lifecycle, user_id, limit=limit, offset=offset, include_expired=include_expired)
+
+    async def get_knowledge(self, knowledge_id: UUID | str) -> SemanticKnowledge | None:
+        """Get a single knowledge entry by ID."""
+        return await get_knowledge(self._lifecycle, knowledge_id)
+
+    async def invalidate_knowledge(self, knowledge_id: UUID | str) -> bool:
+        """Mark knowledge as expired. Returns True if updated."""
+        return await invalidate_knowledge(self._lifecycle, knowledge_id)
+
+    async def delete_knowledge(self, knowledge_id: UUID | str) -> bool:
+        """Delete knowledge from all stores and indices. Returns True if deleted."""
+        return await delete_knowledge(self._lifecycle, knowledge_id)

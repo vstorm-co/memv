@@ -291,3 +291,231 @@ async def test_dedup_skips_duplicate(tmp_path):
         count2 = await memory.process("user1")
         # Second extraction should be skipped as duplicate (identical embedding)
         assert count2 == 0
+
+
+# ---------------------------------------------------------------------------
+# Knowledge CRUD e2e
+# ---------------------------------------------------------------------------
+
+
+async def test_list_knowledge(tmp_path):
+    llm = MockLLM()
+    embedder = MockEmbedder()
+
+    llm.set_responses("generate", [_episode_json()])
+    llm.set_responses("generate_structured", [_extraction(["User likes cats", "User likes dogs"])])
+
+    memory = _make_memory(tmp_path, llm, embedder, enable_knowledge_dedup=False)
+    async with memory:
+        await memory.add_exchange("user1", "I like cats and dogs", "Nice!", timestamp=_ts())
+        await memory.process("user1")
+
+        entries = await memory.list_knowledge("user1")
+        assert len(entries) == 2
+        assert all(k.user_id == "user1" for k in entries)
+
+        # User isolation
+        assert await memory.list_knowledge("user2") == []
+
+
+async def test_list_knowledge_pagination(tmp_path):
+    llm = MockLLM()
+    embedder = MockEmbedder()
+
+    llm.set_responses("generate", [_episode_json()])
+    llm.set_responses("generate_structured", [_extraction(["Fact A", "Fact B", "Fact C"])])
+
+    memory = _make_memory(tmp_path, llm, embedder, enable_knowledge_dedup=False)
+    async with memory:
+        await memory.add_exchange("user1", "stuff", "ok", timestamp=_ts())
+        await memory.process("user1")
+
+        page1 = await memory.list_knowledge("user1", limit=2, offset=0)
+        page2 = await memory.list_knowledge("user1", limit=2, offset=2)
+        assert len(page1) == 2
+        assert len(page2) == 1
+        all_ids = {k.id for k in page1 + page2}
+        assert len(all_ids) == 3
+
+
+async def test_list_knowledge_include_expired(tmp_path):
+    llm = MockLLM()
+    embedder = MockEmbedder()
+
+    llm.set_responses("generate", [_episode_json()])
+    llm.set_responses("generate_structured", [_extraction(["User lives in NYC"])])
+
+    memory = _make_memory(tmp_path, llm, embedder)
+    async with memory:
+        await memory.add_exchange("user1", "I live in NYC", "Nice!", timestamp=_ts())
+        await memory.process("user1")
+
+        entries = await memory.list_knowledge("user1")
+        await memory.invalidate_knowledge(entries[0].id)
+
+        assert await memory.list_knowledge("user1") == []
+        assert len(await memory.list_knowledge("user1", include_expired=True)) == 1
+
+
+async def test_get_knowledge(tmp_path):
+    llm = MockLLM()
+    embedder = MockEmbedder()
+
+    llm.set_responses("generate", [_episode_json()])
+    llm.set_responses("generate_structured", [_extraction(["User is an engineer"])])
+
+    memory = _make_memory(tmp_path, llm, embedder)
+    async with memory:
+        await memory.add_exchange("user1", "I'm an engineer", "Cool!", timestamp=_ts())
+        await memory.process("user1")
+
+        entries = await memory.list_knowledge("user1")
+        got = await memory.get_knowledge(entries[0].id)
+        assert got is not None
+        assert got.statement == "User is an engineer"
+
+
+async def test_get_knowledge_nonexistent(tmp_path):
+    from uuid import uuid4
+
+    llm = MockLLM()
+    embedder = MockEmbedder()
+
+    memory = _make_memory(tmp_path, llm, embedder)
+    async with memory:
+        assert await memory.get_knowledge(uuid4()) is None
+
+
+async def test_invalidate_knowledge(tmp_path):
+    llm = MockLLM()
+    embedder = MockEmbedder()
+
+    llm.set_responses("generate", [_episode_json()])
+    llm.set_responses("generate_structured", [_extraction(["User lives in NYC"])])
+
+    memory = _make_memory(tmp_path, llm, embedder)
+    async with memory:
+        await memory.add_exchange("user1", "I live in NYC", "Nice!", timestamp=_ts())
+        await memory.process("user1")
+
+        entries = await memory.list_knowledge("user1")
+        kid = entries[0].id
+
+        assert await memory.invalidate_knowledge(kid) is True
+
+        # No longer in default list
+        assert await memory.list_knowledge("user1") == []
+        # Visible with include_expired
+        expired = await memory.list_knowledge("user1", include_expired=True)
+        assert len(expired) == 1
+        assert expired[0].expired_at is not None
+
+        # Excluded from retrieve()
+        result = await memory.retrieve("User lives in NYC", user_id="user1")
+        assert len(result.retrieved_knowledge) == 0
+
+        # But visible when including expired in retrieval
+        result_expired = await memory.retrieve("User lives in NYC", user_id="user1", include_expired=True)
+        assert len(result_expired.retrieved_knowledge) == 1
+
+
+async def test_invalidate_knowledge_nonexistent(tmp_path):
+    from uuid import uuid4
+
+    llm = MockLLM()
+    embedder = MockEmbedder()
+
+    memory = _make_memory(tmp_path, llm, embedder)
+    async with memory:
+        assert await memory.invalidate_knowledge(uuid4()) is False
+
+
+async def test_invalidate_knowledge_already_expired(tmp_path):
+    llm = MockLLM()
+    embedder = MockEmbedder()
+
+    llm.set_responses("generate", [_episode_json()])
+    llm.set_responses("generate_structured", [_extraction(["User likes tea"])])
+
+    memory = _make_memory(tmp_path, llm, embedder)
+    async with memory:
+        await memory.add_exchange("user1", "I like tea", "Nice!", timestamp=_ts())
+        await memory.process("user1")
+
+        entries = await memory.list_knowledge("user1")
+        kid = entries[0].id
+
+        assert await memory.invalidate_knowledge(kid) is True
+        # Second invalidation returns False (already expired)
+        assert await memory.invalidate_knowledge(kid) is False
+
+
+async def test_delete_knowledge(tmp_path):
+    """Hard-delete removes from DB, vector index, and text index."""
+    llm = MockLLM()
+    embedder = MockEmbedder()
+
+    llm.set_responses("generate", [_episode_json()])
+    llm.set_responses("generate_structured", [_extraction(["User has a secret"])])
+
+    memory = _make_memory(tmp_path, llm, embedder)
+    async with memory:
+        await memory.add_exchange("user1", "secret info", "ok", timestamp=_ts())
+        await memory.process("user1")
+
+        entries = await memory.list_knowledge("user1")
+        kid = entries[0].id
+
+        assert await memory.delete_knowledge(kid) is True
+        # Gone from store
+        assert await memory.get_knowledge(kid) is None
+        # Gone from list
+        assert await memory.list_knowledge("user1") == []
+        # Gone from retrieval
+        result = await memory.retrieve("User has a secret", user_id="user1")
+        assert len(result.retrieved_knowledge) == 0
+
+        # Double-delete returns False
+        assert await memory.delete_knowledge(kid) is False
+
+
+async def test_delete_knowledge_nonexistent(tmp_path):
+    from uuid import uuid4
+
+    llm = MockLLM()
+    embedder = MockEmbedder()
+
+    memory = _make_memory(tmp_path, llm, embedder)
+    async with memory:
+        assert await memory.delete_knowledge(uuid4()) is False
+
+
+async def test_delete_knowledge_preserves_others(tmp_path):
+    """Deleting one entry leaves other entries intact in all stores."""
+    llm = MockLLM()
+    embedder = MockEmbedder()
+
+    llm.set_responses("generate", [_episode_json()])
+    llm.set_responses("generate_structured", [_extraction(["User likes Python", "User likes Rust"])])
+
+    memory = _make_memory(tmp_path, llm, embedder, enable_knowledge_dedup=False)
+    async with memory:
+        await memory.add_exchange("user1", "I like Python and Rust", "Cool!", timestamp=_ts())
+        await memory.process("user1")
+
+        entries = await memory.list_knowledge("user1")
+        assert len(entries) == 2
+
+        # Delete one
+        to_delete = next(k for k in entries if k.statement == "User likes Python")
+        to_keep = next(k for k in entries if k.statement == "User likes Rust")
+        await memory.delete_knowledge(to_delete.id)
+
+        # Other entry survives in store
+        remaining = await memory.list_knowledge("user1")
+        assert len(remaining) == 1
+        assert remaining[0].id == to_keep.id
+
+        # Other entry survives in retrieval
+        result = await memory.retrieve("Rust", user_id="user1")
+        assert any(k.statement == "User likes Rust" for k in result.retrieved_knowledge)

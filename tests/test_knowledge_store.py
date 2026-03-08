@@ -209,3 +209,66 @@ async def test_isolation_via_user_id(knowledge_store):
     assert await knowledge_store.count() == 1
     remaining = await knowledge_store.get_all()
     assert remaining[0].source_episode_id == bob_ep
+
+
+# ---------------------------------------------------------------------------
+# list_by_user / count_by_user
+# ---------------------------------------------------------------------------
+
+
+async def test_list_by_user(knowledge_store):
+    await knowledge_store.add(make_knowledge(user_id="alice", statement="a1"))
+    await knowledge_store.add(make_knowledge(user_id="alice", statement="a2"))
+    await knowledge_store.add(make_knowledge(user_id="bob", statement="b1"))
+
+    results = await knowledge_store.list_by_user("alice")
+    assert len(results) == 2
+    assert all(r.user_id == "alice" for r in results)
+
+
+async def test_list_by_user_excludes_expired(knowledge_store):
+    await knowledge_store.add(make_knowledge(user_id="alice", statement="current"))
+    await knowledge_store.add(
+        make_knowledge(user_id="alice", statement="expired", expired_at=datetime(2024, 7, 1, 0, 0, 0, tzinfo=timezone.utc))
+    )
+
+    results = await knowledge_store.list_by_user("alice")
+    assert len(results) == 1
+    assert results[0].statement == "current"
+
+    results_all = await knowledge_store.list_by_user("alice", include_expired=True)
+    assert len(results_all) == 2
+
+
+async def test_list_by_user_pagination(knowledge_store):
+    for i in range(5):
+        await knowledge_store.add(make_knowledge(user_id="alice", statement=f"fact {i}"))
+
+    page1 = await knowledge_store.list_by_user("alice", limit=2, offset=0)
+    page2 = await knowledge_store.list_by_user("alice", limit=2, offset=2)
+    page3 = await knowledge_store.list_by_user("alice", limit=2, offset=4)
+
+    assert len(page1) == 2
+    assert len(page2) == 2
+    assert len(page3) == 1
+
+    all_ids = {k.id for k in page1 + page2 + page3}
+    assert len(all_ids) == 5
+
+
+async def test_list_by_user_empty(knowledge_store):
+    assert await knowledge_store.list_by_user("nobody") == []
+
+
+async def test_count_by_user(knowledge_store):
+    await knowledge_store.add(make_knowledge(user_id="alice", statement="a1"))
+    await knowledge_store.add(make_knowledge(user_id="alice", statement="a2"))
+    await knowledge_store.add(
+        make_knowledge(user_id="alice", statement="expired", expired_at=datetime(2024, 7, 1, 0, 0, 0, tzinfo=timezone.utc))
+    )
+    await knowledge_store.add(make_knowledge(user_id="bob", statement="b1"))
+
+    assert await knowledge_store.count_by_user("alice") == 2
+    assert await knowledge_store.count_by_user("alice", include_expired=True) == 3
+    assert await knowledge_store.count_by_user("bob") == 1
+    assert await knowledge_store.count_by_user("nobody") == 0

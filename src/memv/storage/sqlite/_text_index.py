@@ -112,6 +112,19 @@ class TextIndex(StoreBase):
         # Quote each word to treat as literal, join with space (implicit AND)
         return " ".join(f'"{word}"' for word in words)
 
+    async def delete(self, uuid: UUID) -> bool:
+        """Delete a single text index entry by UUID. Returns True if deleted."""
+        cursor = await self._conn.execute(f"SELECT rowid FROM {self._mapping_table} WHERE uuid = ?", (str(uuid),))
+        row = await cursor.fetchone()
+        if row is None:
+            return False
+
+        rowid = row["rowid"]
+        await self._conn.execute(f"DELETE FROM {self._fts_table} WHERE rowid = ?", (rowid,))
+        await self._conn.execute(f"DELETE FROM {self._mapping_table} WHERE rowid = ?", (rowid,))
+        await self._conn.commit()
+        return True
+
     async def clear_user(self, user_id: str) -> int:
         """Delete all text index entries for a user. Returns count of deleted entries."""
         # Get rowids to delete from fts table

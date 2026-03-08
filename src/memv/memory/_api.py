@@ -1,14 +1,16 @@
-"""Public API implementations: add_message, add_exchange, retrieve, clear_user."""
+"""Public API implementations."""
 
 from __future__ import annotations
 
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING
+from uuid import UUID  # noqa: F401
 
 from memv.models import (
     Message,
     MessageRole,
     RetrievalResult,
+    SemanticKnowledge,  # noqa: F401
 )
 
 if TYPE_CHECKING:
@@ -142,3 +144,43 @@ async def clear_user(
     counts["messages"] = await lifecycle.messages.clear_user(user_id)
 
     return counts
+
+
+# -------------------------------------------------------------------------
+# Knowledge CRUD
+# -------------------------------------------------------------------------
+
+
+async def list_knowledge(
+    lifecycle: LifecycleManager,
+    user_id: str,
+    limit: int = 50,
+    offset: int = 0,
+    include_expired: bool = False,
+) -> list[SemanticKnowledge]:
+    """List knowledge entries for a user with pagination."""
+    lifecycle.ensure_open()
+    return await lifecycle.knowledge.list_by_user(user_id, limit=limit, offset=offset, include_expired=include_expired)
+
+
+async def get_knowledge(lifecycle: LifecycleManager, knowledge_id: UUID | str) -> SemanticKnowledge | None:
+    """Get a single knowledge entry by ID."""
+    lifecycle.ensure_open()
+    return await lifecycle.knowledge.get(knowledge_id)
+
+
+async def invalidate_knowledge(lifecycle: LifecycleManager, knowledge_id: UUID | str) -> bool:
+    """Mark knowledge as expired. Returns True if updated."""
+    lifecycle.ensure_open()
+    return await lifecycle.knowledge.invalidate(knowledge_id)
+
+
+async def delete_knowledge(lifecycle: LifecycleManager, knowledge_id: UUID | str) -> bool:
+    """Delete knowledge from all stores and indices."""
+    lifecycle.ensure_open()
+    deleted = await lifecycle.knowledge.delete(knowledge_id)
+    if not deleted:
+        return False
+    await lifecycle.vector_index.delete(UUID(str(knowledge_id)))
+    await lifecycle.text_index.delete(UUID(str(knowledge_id)))
+    return True
