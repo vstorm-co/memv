@@ -490,6 +490,255 @@ async def test_delete_knowledge_nonexistent(tmp_path):
         assert await memory.delete_knowledge(uuid4()) is False
 
 
+# ---------------------------------------------------------------------------
+# Contradiction / supersedes e2e
+# ---------------------------------------------------------------------------
+
+
+async def test_contradiction_with_supersedes_invalidates_old(tmp_path):
+    """Contradiction with supersedes index invalidates correct entry + sets audit trail."""
+    llm = MockLLM()
+    embedder = MockEmbedder()
+
+    # First process: cold start
+    llm.set_responses(
+        "generate",
+        [
+            _episode_json("Setup", "First ep"),
+            _episode_json("Update", "Second ep"),
+            "I predict user likes Python.",  # prediction for second process
+        ],
+    )
+    llm.set_responses(
+        "generate_structured",
+        [
+            _extraction(["User lives in NYC"]),
+            ExtractionResponse(
+                extracted=[
+                    ExtractedKnowledge(
+                        statement="User lives in Berlin",
+                        knowledge_type="contradiction",
+                        confidence=0.95,
+                        supersedes=0,
+                    )
+                ]
+            ),
+        ],
+    )
+
+    memory = _make_memory(tmp_path, llm, embedder, enable_knowledge_dedup=False)
+    async with memory:
+        await memory.add_exchange("user1", "I live in NYC", "Cool!", timestamp=_ts())
+        await memory.process("user1")
+
+        await memory.add_exchange("user1", "I moved to Berlin", "Nice!", timestamp=_ts(60))
+        await memory.process("user1")
+
+        # Old entry should be expired with superseded_by set
+        all_entries = await memory.list_knowledge("user1", include_expired=True)
+        current = [k for k in all_entries if k.expired_at is None]
+        expired = [k for k in all_entries if k.expired_at is not None]
+
+        assert len(current) == 1
+        assert current[0].statement == "User lives in Berlin"
+        assert len(expired) == 1
+        assert expired[0].statement == "User lives in NYC"
+        assert expired[0].superseded_by == current[0].id
+
+
+async def test_update_type_also_invalidates(tmp_path):
+    """knowledge_type='update' triggers invalidation same as 'contradiction', with audit trail."""
+    llm = MockLLM()
+    embedder = MockEmbedder()
+
+    llm.set_responses(
+        "generate",
+        [
+            _episode_json("Setup", "First ep"),
+            _episode_json("Refine", "Second ep"),
+            "I predict user likes Python.",
+        ],
+    )
+    llm.set_responses(
+        "generate_structured",
+        [
+            _extraction(["User works at Acme"]),
+            ExtractionResponse(
+                extracted=[
+                    ExtractedKnowledge(
+                        statement="User works at Acme as a senior engineer",
+                        knowledge_type="update",
+                        confidence=0.9,
+                        supersedes=0,
+                    )
+                ]
+            ),
+        ],
+    )
+
+    memory = _make_memory(tmp_path, llm, embedder, enable_knowledge_dedup=False)
+    async with memory:
+        await memory.add_exchange("user1", "I work at Acme", "Cool!", timestamp=_ts())
+        await memory.process("user1")
+
+        await memory.add_exchange("user1", "I'm a senior engineer at Acme", "Nice!", timestamp=_ts(60))
+        await memory.process("user1")
+
+        all_entries = await memory.list_knowledge("user1", include_expired=True)
+        current = [k for k in all_entries if k.expired_at is None]
+        expired = [k for k in all_entries if k.expired_at is not None]
+
+        assert len(current) == 1
+        assert current[0].statement == "User works at Acme as a senior engineer"
+        # Verify audit trail — proves index-based path was used, not vector fallback
+        assert len(expired) == 1
+        assert expired[0].superseded_by == current[0].id
+
+
+async def test_out_of_bounds_supersedes_falls_back(tmp_path):
+    """Out-of-bounds supersedes index stores new entry, old entry unchanged (no superseded_by)."""
+    llm = MockLLM()
+    embedder = MockEmbedder()
+
+    llm.set_responses(
+        "generate",
+        [
+            _episode_json("Setup", "First ep"),
+            _episode_json("Bad idx", "Second ep"),
+            "prediction",
+        ],
+    )
+    llm.set_responses(
+        "generate_structured",
+        [
+            _extraction(["User likes tea"]),
+            ExtractionResponse(
+                extracted=[
+                    ExtractedKnowledge(
+                        statement="User likes coffee",
+                        knowledge_type="contradiction",
+                        confidence=0.9,
+                        supersedes=999,  # out of bounds
+                    )
+                ]
+            ),
+        ],
+    )
+
+    memory = _make_memory(tmp_path, llm, embedder, enable_knowledge_dedup=False)
+    async with memory:
+        await memory.add_exchange("user1", "I like tea", "Ok!", timestamp=_ts())
+        await memory.process("user1")
+
+        await memory.add_exchange("user1", "Actually coffee", "Sure!", timestamp=_ts(60))
+        count = await memory.process("user1")
+
+        assert count == 1
+        # Vector fallback fires but MockEmbedder hashes differ → no invalidation.
+        # Key check: old entry has NO superseded_by (index path wasn't used).
+        all_entries = await memory.list_knowledge("user1", include_expired=True)
+        for entry in all_entries:
+            assert entry.superseded_by is None
+
+
+async def test_contradiction_without_supersedes_no_audit_trail(tmp_path):
+    """contradiction with supersedes=None uses vector fallback — no superseded_by set."""
+    llm = MockLLM()
+    embedder = MockEmbedder()
+
+    llm.set_responses(
+        "generate",
+        [
+            _episode_json("Setup", "First ep"),
+            _episode_json("Change", "Second ep"),
+            "prediction",
+        ],
+    )
+    llm.set_responses(
+        "generate_structured",
+        [
+            _extraction(["User likes tea"]),
+            ExtractionResponse(
+                extracted=[
+                    ExtractedKnowledge(
+                        statement="User likes coffee",
+                        knowledge_type="contradiction",
+                        confidence=0.9,
+                        # supersedes is None (default)
+                    )
+                ]
+            ),
+        ],
+    )
+
+    memory = _make_memory(tmp_path, llm, embedder, enable_knowledge_dedup=False)
+    async with memory:
+        await memory.add_exchange("user1", "I like tea", "Ok!", timestamp=_ts())
+        await memory.process("user1")
+
+        await memory.add_exchange("user1", "Actually coffee", "Sure!", timestamp=_ts(60))
+        count = await memory.process("user1")
+
+        assert count == 1
+        # Vector fallback doesn't set superseded_by (uses invalidate, not invalidate_with_successor)
+        all_entries = await memory.list_knowledge("user1", include_expired=True)
+        for entry in all_entries:
+            assert entry.superseded_by is None
+
+
+async def test_multiple_extractions_superseding_same_index(tmp_path):
+    """Two extractions pointing at same index: first invalidates, second is no-op."""
+    llm = MockLLM()
+    embedder = MockEmbedder()
+
+    llm.set_responses(
+        "generate",
+        [
+            _episode_json("Setup", "First ep"),
+            _episode_json("Double", "Second ep"),
+            "prediction",
+        ],
+    )
+    llm.set_responses(
+        "generate_structured",
+        [
+            _extraction(["User lives in NYC"]),
+            ExtractionResponse(
+                extracted=[
+                    ExtractedKnowledge(
+                        statement="User lives in Berlin",
+                        knowledge_type="contradiction",
+                        confidence=0.9,
+                        supersedes=0,
+                    ),
+                    ExtractedKnowledge(
+                        statement="User moved to Berlin in 2025",
+                        knowledge_type="update",
+                        confidence=0.85,
+                        supersedes=0,  # same index
+                    ),
+                ]
+            ),
+        ],
+    )
+
+    memory = _make_memory(tmp_path, llm, embedder, enable_knowledge_dedup=False)
+    async with memory:
+        await memory.add_exchange("user1", "I live in NYC", "Cool!", timestamp=_ts())
+        await memory.process("user1")
+
+        await memory.add_exchange("user1", "I moved to Berlin in 2025", "Nice!", timestamp=_ts(60))
+        count = await memory.process("user1")
+
+        assert count == 2
+        all_entries = await memory.list_knowledge("user1", include_expired=True)
+        expired = [k for k in all_entries if k.expired_at is not None]
+        assert len(expired) == 1
+        # First supersedes call won, superseded_by points to "User lives in Berlin"
+        berlin_entry = next(k for k in all_entries if k.statement == "User lives in Berlin")
+        assert expired[0].superseded_by == berlin_entry.id
+
+
 async def test_delete_knowledge_preserves_others(tmp_path):
     """Deleting one entry leaves other entries intact in all stores."""
     llm = MockLLM()

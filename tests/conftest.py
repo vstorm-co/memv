@@ -76,7 +76,14 @@ def make_episode(user_id="user1", title="Test Episode", content="A test episode.
 
 
 def make_knowledge(
-    episode_id=None, user_id=None, statement="User likes Python", embedding=None, valid_at=None, invalid_at=None, expired_at=None
+    episode_id=None,
+    user_id=None,
+    statement="User likes Python",
+    embedding=None,
+    valid_at=None,
+    invalid_at=None,
+    expired_at=None,
+    superseded_by=None,
 ):
     return SemanticKnowledge(
         user_id=user_id,
@@ -86,6 +93,7 @@ def make_knowledge(
         valid_at=valid_at,
         invalid_at=invalid_at,
         expired_at=expired_at,
+        superseded_by=superseded_by,
         created_at=datetime(2024, 6, 15, 12, 0, 0, tzinfo=timezone.utc),
     )
 

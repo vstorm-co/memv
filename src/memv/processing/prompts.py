@@ -311,7 +311,12 @@ For each extracted item, specify:
 Extract ALL concrete facts. Multiple extractions from one episode is expected."""
 
 
-def extraction_prompt_with_prediction(prediction: str, conversation: str, reference_timestamp: str | None = None) -> str:
+def extraction_prompt_with_prediction(
+    prediction: str,
+    conversation: str,
+    reference_timestamp: str | None = None,
+    existing_knowledge_numbered: str | None = None,
+) -> str:
     """Prompt for extracting knowledge by comparing prediction vs reality."""
     timestamp_section = ""
     if reference_timestamp:
@@ -323,6 +328,13 @@ You MUST resolve ALL relative dates using this timestamp.
 Statements with unresolved relative time ("yesterday", "last week") are INVALID — resolve them or omit.
 """
 
+    existing_section = ""
+    if existing_knowledge_numbered:
+        existing_section = f"""
+<existing_knowledge>
+{existing_knowledge_numbered}
+</existing_knowledge>"""
+
     return f"""Extract valuable knowledge by comparing actual conversation with predicted content.
 {timestamp_section}
 **SOURCE RULES:**
@@ -333,6 +345,7 @@ Statements with unresolved relative time ("yesterday", "last week") are INVALID 
 <prediction>
 {prediction}
 </prediction>
+{existing_section}
 
 <actual_conversation>
 {conversation}
@@ -386,6 +399,7 @@ For each extracted item, specify:
 - valid_at: ISO 8601 datetime when fact became true, or null if unknown/always true (e.g., "2024-01-01T00:00:00Z")
 - invalid_at: ISO 8601 datetime when fact stops being true, or null if still true (e.g., "2024-12-31T23:59:59Z")
 - confidence: 0.0-1.0
+- supersedes: If this fact replaces an entry from <existing_knowledge>, set to its index number. Otherwise null.
 
 Return EMPTY LIST if no concrete facts found beyond the prediction."""
 

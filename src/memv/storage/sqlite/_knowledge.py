@@ -17,8 +17,9 @@ class KnowledgeStore(StoreBase):
     async def add(self, knowledge: SemanticKnowledge) -> None:
         await self._conn.execute(
             """INSERT INTO semantic_knowledge
-            (id, user_id, statement, source_episode_id, created_at, importance_score, embedding, valid_at, invalid_at, expired_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (id, user_id, statement, source_episode_id, created_at,
+             importance_score, embedding, valid_at, invalid_at, expired_at, superseded_by)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
                 str(knowledge.id),
                 knowledge.user_id,
@@ -30,6 +31,7 @@ class KnowledgeStore(StoreBase):
                 int(knowledge.valid_at.timestamp()) if knowledge.valid_at else None,
                 int(knowledge.invalid_at.timestamp()) if knowledge.invalid_at else None,
                 int(knowledge.expired_at.timestamp()) if knowledge.expired_at else None,
+                str(knowledge.superseded_by) if knowledge.superseded_by else None,
             ),
         )
         await self._commit()
@@ -137,6 +139,16 @@ class KnowledgeStore(StoreBase):
         await self._commit()
         return cursor.rowcount > 0
 
+    async def invalidate_with_successor(self, knowledge_id: UUID | str, successor_id: UUID | str) -> bool:
+        """Mark knowledge as expired and record which entry replaced it. Returns True if updated."""
+        expired_at = int(datetime.now(timezone.utc).timestamp())
+        cursor = await self._conn.execute(
+            "UPDATE semantic_knowledge SET expired_at = ?, superseded_by = ? WHERE id = ? AND expired_at IS NULL",
+            (expired_at, str(successor_id), str(knowledge_id)),
+        )
+        await self._commit()
+        return cursor.rowcount > 0
+
     async def count(self) -> int:
         """Count all knowledge entries."""
         cursor = await self._conn.execute("SELECT COUNT(*) as cnt FROM semantic_knowledge")
@@ -173,6 +185,7 @@ class KnowledgeStore(StoreBase):
             valid_at=datetime.fromtimestamp(row["valid_at"], tz=timezone.utc) if row["valid_at"] else None,
             invalid_at=datetime.fromtimestamp(row["invalid_at"], tz=timezone.utc) if row["invalid_at"] else None,
             expired_at=datetime.fromtimestamp(row["expired_at"], tz=timezone.utc) if row["expired_at"] else None,
+            superseded_by=UUID(row["superseded_by"]) if row["superseded_by"] else None,
         )
 
     async def _create_table(self):
@@ -187,12 +200,14 @@ class KnowledgeStore(StoreBase):
                 embedding TEXT,
                 valid_at INTEGER,
                 invalid_at INTEGER,
-                expired_at INTEGER
+                expired_at INTEGER,
+                superseded_by TEXT
             )"""
         )
         await self._conn.execute("CREATE INDEX IF NOT EXISTS idx_sk_episode ON semantic_knowledge(source_episode_id)")
         await self._migrate_add_bitemporal_columns()
         await self._migrate_add_user_id_column()
+        await self._migrate_add_superseded_by_column()
         await self._conn.execute("CREATE INDEX IF NOT EXISTS idx_sk_valid_at ON semantic_knowledge(valid_at)")
         await self._conn.execute("CREATE INDEX IF NOT EXISTS idx_sk_expired_at ON semantic_knowledge(expired_at)")
         await self._conn.execute("CREATE INDEX IF NOT EXISTS idx_sk_user_id ON semantic_knowledge(user_id)")
@@ -223,3 +238,11 @@ class KnowledgeStore(StoreBase):
             except aiosqlite.OperationalError as e:
                 if "no such table" not in str(e).lower():
                     raise
+
+    async def _migrate_add_superseded_by_column(self):
+        """Add superseded_by column if it doesn't exist."""
+        cursor = await self._conn.execute("PRAGMA table_info(semantic_knowledge)")
+        columns = {row["name"] for row in await cursor.fetchall()}
+
+        if "superseded_by" not in columns:
+            await self._conn.execute("ALTER TABLE semantic_knowledge ADD COLUMN superseded_by TEXT")

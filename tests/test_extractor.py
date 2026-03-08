@@ -192,3 +192,33 @@ async def test_prompt_contains_reference_timestamp():
 
     prompt = llm.calls["generate_structured"][0][0]
     assert "reference_timestamp" in prompt
+
+
+async def test_supersedes_field_preserved():
+    """supersedes field flows through extraction."""
+    llm = MockLLM()
+    item = ExtractedKnowledge(statement="User now prefers Rust", knowledge_type="contradiction", confidence=0.95, supersedes=0)
+    llm.set_responses("generate_structured", [ExtractionResponse(extracted=[item])])
+    extractor = PredictCalibrateExtractor(llm)
+
+    result = await extractor.extract(_episode(), existing_knowledge=[])
+    assert result[0].supersedes == 0
+
+
+async def test_warm_prompt_contains_numbered_existing_knowledge():
+    """Warm extraction prompt includes numbered existing knowledge list."""
+    llm = MockLLM()
+    llm.set_responses("generate", ["prediction"])
+    llm.set_responses("generate_structured", [ExtractionResponse(extracted=[])])
+    extractor = PredictCalibrateExtractor(llm)
+
+    existing = [
+        _knowledge("User likes Python"),
+        _knowledge("User works at Acme"),
+    ]
+    await extractor.extract(_episode(), existing_knowledge=existing)
+
+    prompt = llm.calls["generate_structured"][0][0]
+    assert "[0] User likes Python" in prompt
+    assert "[1] User works at Acme" in prompt
+    assert "existing_knowledge" in prompt

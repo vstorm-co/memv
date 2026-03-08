@@ -272,3 +272,39 @@ async def test_count_by_user(knowledge_store):
     assert await knowledge_store.count_by_user("alice", include_expired=True) == 3
     assert await knowledge_store.count_by_user("bob") == 1
     assert await knowledge_store.count_by_user("nobody") == 0
+
+
+# ---------------------------------------------------------------------------
+# invalidate_with_successor
+# ---------------------------------------------------------------------------
+
+
+async def test_invalidate_with_successor(knowledge_store):
+    old = make_knowledge(user_id="alice", statement="User lives in NYC")
+    new = make_knowledge(user_id="alice", statement="User lives in Berlin")
+    await knowledge_store.add(old)
+    await knowledge_store.add(new)
+
+    assert await knowledge_store.invalidate_with_successor(old.id, new.id) is True
+
+    got = await knowledge_store.get(old.id)
+    assert got.expired_at is not None
+    assert got.superseded_by == new.id
+
+
+async def test_invalidate_with_successor_already_expired(knowledge_store):
+    old = make_knowledge(expired_at=datetime(2024, 7, 1, 0, 0, 0, tzinfo=timezone.utc))
+    new = make_knowledge()
+    await knowledge_store.add(old)
+    await knowledge_store.add(new)
+
+    assert await knowledge_store.invalidate_with_successor(old.id, new.id) is False
+
+
+async def test_superseded_by_roundtrip(knowledge_store):
+    successor_id = uuid4()
+    k = make_knowledge(superseded_by=successor_id, expired_at=datetime(2024, 7, 1, 0, 0, 0, tzinfo=timezone.utc))
+    await knowledge_store.add(k)
+
+    got = await knowledge_store.get(k.id)
+    assert got.superseded_by == successor_id

@@ -180,10 +180,6 @@ class Pipeline:
         # 9. Process each extracted item
         stored_count = 0
         for item, embedding in zip(extracted, embeddings, strict=True):
-            # Handle contradictions
-            if item.knowledge_type == "contradiction":
-                await self._invalidate_contradicted_knowledge(embedding, user_id)
-
             # Check for duplicates if enabled
             if self._lc.enable_knowledge_dedup:
                 is_duplicate, score = await self._is_duplicate_knowledge(embedding, user_id)
@@ -206,6 +202,9 @@ class Pipeline:
             await self._lc.text_index.add(knowledge.id, knowledge.statement, user_id)
             stored_count += 1
 
+            if item.knowledge_type in ("contradiction", "update"):
+                await self._handle_supersedes(item, knowledge.id, existing, embedding, user_id)
+
         return stored_count
 
     def _validate_extraction(self, item: ExtractedKnowledge) -> bool:
@@ -225,6 +224,32 @@ class Pipeline:
 
         _top_id, top_score = similar[0]
         return top_score >= self._lc.knowledge_dedup_threshold, top_score
+
+    async def _handle_supersedes(
+        self,
+        item: ExtractedKnowledge,
+        new_knowledge_id,
+        existing_result,
+        embedding: list[float],
+        user_id: str,
+    ) -> None:
+        """Invalidate the old entry that this extraction replaces."""
+        existing_list = existing_result.retrieved_knowledge
+
+        if item.supersedes is not None:
+            if 0 <= item.supersedes < len(existing_list):
+                old = existing_list[item.supersedes]
+                await self._lc.knowledge.invalidate_with_successor(old.id, new_knowledge_id)
+                return
+            else:
+                logger.warning(
+                    "supersedes index %d out of bounds (have %d entries), falling back to vector search",
+                    item.supersedes,
+                    len(existing_list),
+                )
+
+        # Fallback: vector-based similarity matching
+        await self._invalidate_contradicted_knowledge(embedding, user_id)
 
     async def _invalidate_contradicted_knowledge(self, new_embedding: list[float], user_id: str) -> None:
         """Find and invalidate existing knowledge that contradicts the new statement."""

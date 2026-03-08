@@ -20,6 +20,11 @@ from memv.protocols import LLMClient
 logger = logging.getLogger(__name__)
 
 
+def _format_numbered_knowledge(knowledge: list[SemanticKnowledge]) -> str:
+    """Format existing knowledge as a numbered list for the extraction prompt."""
+    return "\n".join(f"[{i}] {k.statement}" for i, k in enumerate(knowledge))
+
+
 class ExtractionResponse(BaseModel):
     """Structured response from calibration LLM call."""
 
@@ -65,7 +70,7 @@ class PredictCalibrateExtractor:
         # Stage 2: Calibrate
         # Cold start (no prediction): use episode content + original messages
         # With prediction: compare against original messages
-        novel = await self._extract_gaps(prediction, episode)
+        novel = await self._extract_gaps(prediction, episode, existing_knowledge)
 
         return novel
 
@@ -93,6 +98,7 @@ class PredictCalibrateExtractor:
         self,
         prediction: str,
         episode: Episode,
+        existing_knowledge: list[SemanticKnowledge],
     ) -> list[ExtractedKnowledge]:
         """
         Compare prediction to reality, extract what we missed.
@@ -120,7 +126,8 @@ class PredictCalibrateExtractor:
             # With prediction: compare against raw conversation
             logger.info(f"Prediction-based extraction for episode: {episode.title}")
             raw_content = self._format_messages(episode.original_messages)
-            prompt = extraction_prompt_with_prediction(prediction, raw_content, reference_timestamp)
+            numbered = _format_numbered_knowledge(existing_knowledge) if existing_knowledge else None
+            prompt = extraction_prompt_with_prediction(prediction, raw_content, reference_timestamp, numbered)
 
         logger.debug(f"Extraction prompt:\n{prompt[:500]}...")
         response = await self.llm.generate_structured(prompt, ExtractionResponse)

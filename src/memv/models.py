@@ -85,6 +85,7 @@ class SemanticKnowledge(BaseModel):
     valid_at: datetime | None = Field(default=None, description="When fact became true in world (None = unknown/always)")
     invalid_at: datetime | None = Field(default=None, description="When fact stopped being true (None = still true)")
     expired_at: datetime | None = Field(default=None, description="When this record was superseded (None = current)")
+    superseded_by: UUID | None = Field(default=None, description="ID of the knowledge entry that replaced this one")
 
     def invalidate(self) -> None:
         """Mark this knowledge as superseded."""
@@ -129,6 +130,7 @@ class ExtractedKnowledge(BaseModel):
     valid_at: datetime | None = None  # Parsed: when fact became true (ISO format from LLM)
     invalid_at: datetime | None = None  # Parsed: when fact stops being true (ISO format from LLM)
     confidence: float = 1.0
+    supersedes: int | None = None  # Index into numbered existing knowledge list
 
 
 class ProcessStatus(StrEnum):
