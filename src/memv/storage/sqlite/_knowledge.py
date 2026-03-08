@@ -220,5 +220,6 @@ class KnowledgeStore(StoreBase):
                     SET user_id = (SELECT user_id FROM episodes WHERE id = semantic_knowledge.source_episode_id)
                     WHERE user_id IS NULL"""
                 )
-            except aiosqlite.OperationalError:
-                pass  # episodes table may not exist in this connection
+            except aiosqlite.OperationalError as e:
+                if "no such table" not in str(e).lower():
+                    raise

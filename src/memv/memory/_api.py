@@ -4,18 +4,18 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING
-from uuid import UUID  # noqa: F401
+from uuid import UUID
 
 from memv.models import (
     Message,
     MessageRole,
     RetrievalResult,
-    SemanticKnowledge,  # noqa: F401
 )
 
 if TYPE_CHECKING:
     from memv.memory._lifecycle import LifecycleManager
     from memv.memory._task_manager import TaskManager
+    from memv.models import SemanticKnowledge
 
 
 async def add_message(lifecycle: LifecycleManager, message: Message) -> None:
