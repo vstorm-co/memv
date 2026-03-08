@@ -14,7 +14,10 @@ from memv.models import (
 from memv.processing.temporal import backfill_temporal_fields
 
 if TYPE_CHECKING:
+    from uuid import UUID
+
     from memv.memory._lifecycle import LifecycleManager
+    from memv.models import RetrievalResult
 
 logger = logging.getLogger(__name__)
 
@@ -197,13 +200,13 @@ class Pipeline:
                 invalid_at=item.invalid_at,
             )
 
+            if item.knowledge_type in ("contradiction", "update"):
+                await self._handle_supersedes(item, knowledge.id, existing, embedding, user_id)
+
             await self._lc.knowledge.add(knowledge)
             await self._lc.vector_index.add(knowledge.id, embedding, user_id)
             await self._lc.text_index.add(knowledge.id, knowledge.statement, user_id)
             stored_count += 1
-
-            if item.knowledge_type in ("contradiction", "update"):
-                await self._handle_supersedes(item, knowledge.id, existing, embedding, user_id)
 
         return stored_count
 
@@ -228,8 +231,8 @@ class Pipeline:
     async def _handle_supersedes(
         self,
         item: ExtractedKnowledge,
-        new_knowledge_id,
-        existing_result,
+        new_knowledge_id: UUID,
+        existing_result: RetrievalResult,
         embedding: list[float],
         user_id: str,
     ) -> None:

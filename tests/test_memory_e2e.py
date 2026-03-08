@@ -634,9 +634,10 @@ async def test_out_of_bounds_supersedes_falls_back(tmp_path):
         count = await memory.process("user1")
 
         assert count == 1
-        # Vector fallback fires but MockEmbedder hashes differ → no invalidation.
-        # Key check: old entry has NO superseded_by (index path wasn't used).
         all_entries = await memory.list_knowledge("user1", include_expired=True)
+        coffee = next(k for k in all_entries if k.statement == "User likes coffee")
+        # New entry must not have been self-invalidated
+        assert coffee.expired_at is None
         for entry in all_entries:
             assert entry.superseded_by is None
 
@@ -680,8 +681,10 @@ async def test_contradiction_without_supersedes_no_audit_trail(tmp_path):
         count = await memory.process("user1")
 
         assert count == 1
-        # Vector fallback doesn't set superseded_by (uses invalidate, not invalidate_with_successor)
         all_entries = await memory.list_knowledge("user1", include_expired=True)
+        coffee = next(k for k in all_entries if k.statement == "User likes coffee")
+        # New entry must not have been self-invalidated
+        assert coffee.expired_at is None
         for entry in all_entries:
             assert entry.superseded_by is None
 
