@@ -665,7 +665,6 @@ async def test_contradiction_without_supersedes_no_audit_trail(tmp_path):
                         statement="User likes coffee",
                         knowledge_type="contradiction",
                         confidence=0.9,
-                        # supersedes is None (default)
                     )
                 ]
             ),
