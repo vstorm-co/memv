@@ -2,20 +2,24 @@
 
 from __future__ import annotations
 
+import logging
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING
 from uuid import UUID
 
 from memv.models import (
+    KnowledgeInput,
     Message,
     MessageRole,
     RetrievalResult,
+    SemanticKnowledge,
 )
 
 if TYPE_CHECKING:
     from memv.memory._lifecycle import LifecycleManager
     from memv.memory._task_manager import TaskManager
-    from memv.models import SemanticKnowledge
+
+logger = logging.getLogger(__name__)
 
 
 async def add_message(lifecycle: LifecycleManager, message: Message) -> None:
@@ -123,10 +127,6 @@ async def clear_user(
     # Cancel any pending processing for this user
     await task_manager.cancel_user_tasks(user_id)
 
-    # Get episode IDs for knowledge deletion
-    episodes = await lifecycle.episodes.get_by_user(user_id)
-    episode_ids = [ep.id for ep in episodes]
-
     # Delete in order: indices first, then stores
     counts: dict[str, int] = {}
 
@@ -134,8 +134,8 @@ async def clear_user(
     counts["knowledge_vectors"] = await lifecycle.vector_index.clear_user(user_id)
     counts["knowledge_text"] = await lifecycle.text_index.clear_user(user_id)
 
-    # Clear knowledge (by episode IDs since knowledge doesn't have user_id)
-    counts["knowledge"] = await lifecycle.knowledge.clear_by_episodes(episode_ids)
+    # Clear knowledge (covers both extracted and injected entries)
+    counts["knowledge"] = await lifecycle.knowledge.clear_user(user_id)
 
     # Clear episodes
     counts["episodes"] = await lifecycle.episodes.clear_user(user_id)
@@ -184,3 +184,95 @@ async def delete_knowledge(lifecycle: LifecycleManager, knowledge_id: UUID | str
     await lifecycle.vector_index.delete(UUID(str(knowledge_id)))
     await lifecycle.text_index.delete(UUID(str(knowledge_id)))
     return True
+
+
+async def add_knowledge(
+    lifecycle: LifecycleManager,
+    user_id: str,
+    statement: str,
+    valid_at: datetime | None = None,
+    invalid_at: datetime | None = None,
+) -> SemanticKnowledge | None:
+    """Inject knowledge directly.
+
+    Embeds the statement, optionally checks for duplicates, and indexes
+    in both vector and text indices.
+
+    Returns the created entry, or None if deduplicated.
+    """
+    lifecycle.ensure_open()
+
+    embedding = await lifecycle.embedder.embed(statement)
+
+    if lifecycle.enable_knowledge_dedup:
+        is_duplicate, score = await lifecycle.vector_index.has_near_duplicate(embedding, user_id, lifecycle.knowledge_dedup_threshold)
+        if is_duplicate:
+            logger.info("Skipping duplicate injection: '%s...' (score=%.3f)", statement[:50], score)
+            return None
+
+    knowledge = SemanticKnowledge(
+        user_id=user_id,
+        statement=statement,
+        source_episode_id=None,
+        importance_score=1.0,
+        embedding=embedding,
+        valid_at=valid_at,
+        invalid_at=invalid_at,
+    )
+
+    await lifecycle.knowledge.add(knowledge)
+    await lifecycle.vector_index.add(knowledge.id, embedding, user_id)
+    await lifecycle.text_index.add(knowledge.id, knowledge.statement, user_id)
+
+    return knowledge
+
+
+async def add_knowledge_batch(
+    lifecycle: LifecycleManager,
+    user_id: str,
+    items: list[KnowledgeInput],
+) -> list[SemanticKnowledge]:
+    """Batch inject multiple knowledge entries.
+
+    Args:
+        lifecycle: LifecycleManager instance
+        user_id: User this knowledge belongs to
+        items: List of knowledge entries (statement, valid_at, invalid_at)
+
+    Returns:
+        List of created SemanticKnowledge entries (excludes duplicates).
+    """
+    lifecycle.ensure_open()
+
+    if not items:
+        return []
+
+    statements = [item.statement for item in items]
+    embeddings = await lifecycle.embedder.embed_batch(statements)
+
+    created: list[SemanticKnowledge] = []
+    for item, embedding in zip(items, embeddings, strict=True):
+        if lifecycle.enable_knowledge_dedup:
+            is_duplicate, score = await lifecycle.vector_index.has_near_duplicate(
+                embedding, user_id, lifecycle.knowledge_dedup_threshold
+            )
+            if is_duplicate:
+                logger.info("Skipping duplicate in batch: '%s...' (score=%.3f)", item.statement[:50], score)
+                continue
+
+        knowledge = SemanticKnowledge(
+            user_id=user_id,
+            statement=item.statement,
+            source_episode_id=None,
+            importance_score=1.0,
+            embedding=embedding,
+            valid_at=item.valid_at,
+            invalid_at=item.invalid_at,
+        )
+
+        await lifecycle.knowledge.add(knowledge)
+        await lifecycle.vector_index.add(knowledge.id, embedding, user_id)
+        await lifecycle.text_index.add(knowledge.id, knowledge.statement, user_id)
+        created.append(knowledge)
+
+    return created

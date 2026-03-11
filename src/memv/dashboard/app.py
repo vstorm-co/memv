@@ -418,11 +418,6 @@ class DashboardApp(App):
 
     async def _do_clear_user(self, user_id: str) -> None:
         """Delete all data for a user including indices."""
-        # Get episode IDs first
-        async with EpisodeStore(self.db_path) as ep_store:
-            episodes = await ep_store.get_by_user(user_id)
-            episode_ids = [ep.id for ep in episodes]
-
         counts: dict[str, int] = {}
 
         # Clear knowledge indices (vector and text)
@@ -432,9 +427,9 @@ class DashboardApp(App):
         async with TextIndex(self.db_path, name="knowledge") as txt_idx:
             counts["knowledge_text"] = await txt_idx.clear_user(user_id)
 
-        # Clear knowledge by episode IDs
+        # Clear knowledge
         async with KnowledgeStore(self.db_path) as k_store:
-            counts["knowledge"] = await k_store.clear_by_episodes(episode_ids)
+            counts["knowledge"] = await k_store.clear_user(user_id)
 
         # Clear episodes
         async with EpisodeStore(self.db_path) as ep_store:

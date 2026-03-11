@@ -185,7 +185,9 @@ class Pipeline:
         for item, embedding in zip(extracted, embeddings, strict=True):
             # Check for duplicates if enabled
             if self._lc.enable_knowledge_dedup:
-                is_duplicate, score = await self._is_duplicate_knowledge(embedding, user_id)
+                is_duplicate, score = await self._lc.vector_index.has_near_duplicate(
+                    embedding, user_id, self._lc.knowledge_dedup_threshold
+                )
                 if is_duplicate:
                     logger.info(f"Skipping duplicate: '{item.statement[:50]}...' (score={score:.3f})")
                     continue
@@ -217,16 +219,6 @@ class Pipeline:
             return False
 
         return True
-
-    async def _is_duplicate_knowledge(self, embedding: list[float], user_id: str) -> tuple[bool, float]:
-        """Check if knowledge with this embedding already exists for this user."""
-        similar = await self._lc.vector_index.search_with_scores(embedding, top_k=1, user_id=user_id)
-
-        if not similar:
-            return False, 0.0
-
-        _top_id, top_score = similar[0]
-        return top_score >= self._lc.knowledge_dedup_threshold, top_score
 
     async def _handle_supersedes(
         self,

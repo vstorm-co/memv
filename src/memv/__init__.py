@@ -25,6 +25,7 @@ from memv.memory import Memory
 from memv.models import (
     Episode,
     ExtractedKnowledge,
+    KnowledgeInput,
     Message,
     MessageRole,
     ProcessStatus,
@@ -40,6 +41,7 @@ __all__ = [
     "MessageRole",
     "Episode",
     "SemanticKnowledge",
+    "KnowledgeInput",
     "ExtractedKnowledge",
     "RetrievalResult",
     "ProcessTask",

@@ -24,7 +24,7 @@ class KnowledgeStore(StoreBase):
                 str(knowledge.id),
                 knowledge.user_id,
                 knowledge.statement,
-                str(knowledge.source_episode_id),
+                str(knowledge.source_episode_id) if knowledge.source_episode_id else None,
                 int(knowledge.created_at.timestamp()),
                 knowledge.importance_score,
                 json.dumps(knowledge.embedding),
@@ -173,12 +173,18 @@ class KnowledgeStore(StoreBase):
         await self._commit()
         return cursor.rowcount
 
+    async def clear_user(self, user_id: str) -> int:
+        """Delete all knowledge entries for a user. Returns count deleted."""
+        cursor = await self._conn.execute("DELETE FROM semantic_knowledge WHERE user_id = ?", (user_id,))
+        await self._commit()
+        return cursor.rowcount
+
     def _row_to_knowledge(self, row: aiosqlite.Row) -> SemanticKnowledge:
         return SemanticKnowledge(
             id=UUID(row["id"]),
             user_id=row["user_id"],
             statement=row["statement"],
-            source_episode_id=UUID(row["source_episode_id"]),
+            source_episode_id=UUID(row["source_episode_id"]) if row["source_episode_id"] else None,
             created_at=datetime.fromtimestamp(row["created_at"], tz=timezone.utc),
             importance_score=row["importance_score"],
             embedding=json.loads(row["embedding"]) if row["embedding"] else None,

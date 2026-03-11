@@ -108,3 +108,32 @@ async def test_delete_preserves_others(vector_index):
     results = await vector_index.search([0.0, 1.0, 0.0, 0.0], top_k=5, user_id="user1")
     assert uid2 in results
     assert uid1 not in results
+
+
+async def test_has_near_duplicate_true(vector_index):
+    await vector_index.add(uuid4(), [1.0, 0.0, 0.0, 0.0], user_id="user1")
+
+    is_dup, score = await vector_index.has_near_duplicate([1.0, 0.0, 0.0, 0.0], user_id="user1", threshold=0.8)
+    assert is_dup is True
+    assert score > 0.99
+
+
+async def test_has_near_duplicate_false_below_threshold(vector_index):
+    await vector_index.add(uuid4(), [0.0, 1.0, 0.0, 0.0], user_id="user1")
+
+    is_dup, score = await vector_index.has_near_duplicate([1.0, 0.0, 0.0, 0.0], user_id="user1", threshold=0.8)
+    assert is_dup is False
+    assert 0.0 < score < 0.8
+
+
+async def test_has_near_duplicate_empty_index(vector_index):
+    is_dup, score = await vector_index.has_near_duplicate([1.0, 0.0, 0.0, 0.0], user_id="user1", threshold=0.8)
+    assert is_dup is False
+    assert score == 0.0
+
+
+async def test_has_near_duplicate_user_isolation(vector_index):
+    await vector_index.add(uuid4(), [1.0, 0.0, 0.0, 0.0], user_id="alice")
+
+    is_dup, _ = await vector_index.has_near_duplicate([1.0, 0.0, 0.0, 0.0], user_id="bob", threshold=0.8)
+    assert is_dup is False

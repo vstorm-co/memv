@@ -147,6 +147,14 @@ class VectorIndex(StoreBase):
         # Convert L2 distance to similarity score (higher = more similar)
         return [(UUID(row["uuid"]), 1.0 / (1.0 + row["distance"])) for row in rows]
 
+    async def has_near_duplicate(self, embedding: list[float], user_id: str, threshold: float) -> tuple[bool, float]:
+        """Check if there is a near-duplicate vector entry for this embedding."""
+        similar = await self.search_with_scores(embedding, top_k=1, user_id=user_id)
+        if not similar:
+            return False, 0.0
+        _top_id, top_score = similar[0]
+        return top_score >= threshold, top_score
+
     async def delete(self, uuid: UUID) -> bool:
         """Delete a single vector entry by UUID. Returns True if deleted."""
         cursor = await self._conn.execute(f"SELECT rowid FROM {self._mapping_table} WHERE uuid = ?", (str(uuid),))
