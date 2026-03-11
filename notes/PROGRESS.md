@@ -223,3 +223,13 @@ Major plan restructure — cut scope from 35 sections across 5 releases down to 
 - Updated: conftest `make_knowledge` factory to accept `superseded_by` param
 - Added: 9 new tests — 3 knowledge store (invalidate_with_successor, already expired, roundtrip), 2 extractor (supersedes preserved, numbered knowledge in prompt), 4 e2e (contradiction with supersedes, update type, out-of-bounds, fallback without supersedes)
 - Updated: test count 206 → 215
+
+## 2026-03-11
+
+- Checked off: `add_knowledge` / `add_knowledge_batch` API — implemented in `_api.py` + `memory.py`, commit 3a09cdd
+- Checked off: `source_episode_id` nullable — `UUID | None`, `None = injected`, storage handles both cases
+- Checked off: dedup check on injection — reuses `VectorIndex.has_near_duplicate` (extracted from `Pipeline._is_duplicate_knowledge`)
+- Checked off: batch injection with `embed_batch` — `KnowledgeInput` dataclass added, exported from `memv`
+- Changed: `clear_user` in `_api.py` and `dashboard/app.py` simplified — `KnowledgeStore.clear_user(user_id)` added, no longer fetches episodes first
+- Added: `VectorIndex.has_near_duplicate()` helper — dedup logic shared between Pipeline and injection API
+- Updated: test count 215 → 248 (5 e2e injection tests, 4 vector index tests)

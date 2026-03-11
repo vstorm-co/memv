@@ -1,5 +1,5 @@
 # Next Steps Plan
-Last updated: 2026-03-08 (session 2)
+Last updated: 2026-03-11
 
 **Mission:** Make memv the best "remember what users said" library. Solid semantic memory first, then procedural/agent memory as the differentiator.
 
@@ -14,7 +14,7 @@ Last updated: 2026-03-08 (session 2)
 **What's table-stakes that memv is still missing:**
 - ~~Knowledge CRUD through public API~~ (done — PR #16)
 - Score/relevance threshold on retrieval
-- Direct knowledge injection (bootstrapping without fake conversations)
+- ~~Direct knowledge injection (bootstrapping without fake conversations)~~ (done — PR #18)
 - A second storage backend (Mem0 has 6+, most have 2+)
 
 **Related docs:**
@@ -184,13 +184,13 @@ Index-based supersedes: existing knowledge passed as numbered list to extraction
 Bootstrapping requmires fake conversations without this. Every competitor with a managed API has an inject/add endpoint.
 
 **API** (`src/memv/memory/_api.py`, `memory.py`):
-- [ ] `add_knowledge(user_id, statement, valid_at=None, invalid_at=None) → SemanticKnowledge`
-- [ ] `add_knowledge_batch(user_id, items: list[...])` with `embed_batch`
+- [x] `add_knowledge(user_id, statement, valid_at=None, invalid_at=None) → SemanticKnowledge`
+- [x] `add_knowledge_batch(user_id, items: list[...])` with `embed_batch`
 
 **Implementation**:
-- [ ] Embed statement, optional dedup check, index in vector + text
-- [ ] Make `source_episode_id` nullable (None = injected)
-- [ ] Return the created entry
+- [x] Embed statement, optional dedup check, index in vector + text
+- [x] Make `source_episode_id` nullable (None = injected)
+- [x] Return the created entry
 
 ### 5. Score Threshold Filtering
 
