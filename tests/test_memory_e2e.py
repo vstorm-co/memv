@@ -4,6 +4,7 @@ import json
 from datetime import datetime, timedelta, timezone
 
 import pytest
+from pydantic import ValidationError
 
 from memv import ExtractedKnowledge, KnowledgeInput
 from memv.memory.memory import Memory
@@ -148,7 +149,7 @@ async def test_user_isolation_e2e(tmp_path):
         assert "User likes cats" not in s2
 
 
-async def test_clear_user(tmp_path):
+async def test_clear_user_after_extraction(tmp_path):
     llm = MockLLM()
     embedder = MockEmbedder()
 
@@ -165,6 +166,23 @@ async def test_clear_user(tmp_path):
         assert counts["episodes"] >= 1
 
         result = await memory.retrieve("User has a fact to delete", user_id="user1")
+        assert len(result.retrieved_knowledge) == 0
+
+
+async def test_clear_user_after_injection(tmp_path):
+    """clear_user removes injected knowledge (source_episode_id=None)."""
+    llm = MockLLM()
+    embedder = MockEmbedder()
+    memory = _make_memory(tmp_path, llm, embedder)
+    async with memory:
+        await memory.add_knowledge("user1", KnowledgeInput(statement="User works at Anthropic"))
+        await memory.add_knowledge("user1", KnowledgeInput(statement="User likes coffee"))
+
+        counts = await memory.clear_user("user1")
+        assert counts["knowledge"] == 2
+
+        assert await memory.list_knowledge("user1") == []
+        result = await memory.retrieve("Anthropic", user_id="user1")
         assert len(result.retrieved_knowledge) == 0
 
 
@@ -498,7 +516,7 @@ async def test_add_knowledge(tmp_path):
     embedder = MockEmbedder()
     memory = _make_memory(tmp_path, llm, embedder)
     async with memory:
-        k = await memory.add_knowledge("user1", "User works at Anthropic")
+        k = await memory.add_knowledge("user1", KnowledgeInput(statement="User works at Anthropic"))
         assert k is not None
         assert k.statement == "User works at Anthropic"
         assert k.source_episode_id is None
@@ -515,9 +533,11 @@ async def test_add_knowledge_temporal(tmp_path):
     async with memory:
         await memory.add_knowledge(
             "user1",
-            "User visited Tokyo",
-            valid_at=datetime(2024, 3, 1, tzinfo=timezone.utc),
-            invalid_at=datetime(2024, 3, 31, tzinfo=timezone.utc),
+            KnowledgeInput(
+                statement="User visited Tokyo",
+                valid_at=datetime(2024, 3, 1, tzinfo=timezone.utc),
+                invalid_at=datetime(2024, 3, 31, tzinfo=timezone.utc),
+            ),
         )
 
         result = await memory.retrieve("Tokyo", user_id="user1", at_time=datetime(2024, 3, 15, tzinfo=timezone.utc))
@@ -533,7 +553,7 @@ async def test_add_knowledge_batch(tmp_path):
     embedder = MockEmbedder()
     memory = _make_memory(tmp_path, llm, embedder, enable_knowledge_dedup=False)
     async with memory:
-        items = [KnowledgeInput("Fact A"), KnowledgeInput("Fact B"), KnowledgeInput("Fact C")]
+        items = [KnowledgeInput(statement="Fact A"), KnowledgeInput(statement="Fact B"), KnowledgeInput(statement="Fact C")]
         created = await memory.add_knowledge_batch("user1", items)
         assert len(created) == 3
 
@@ -547,8 +567,8 @@ async def test_add_knowledge_dedup(tmp_path):
     embedder = MockEmbedder()
     memory = _make_memory(tmp_path, llm, embedder, enable_knowledge_dedup=True, knowledge_dedup_threshold=0.8)
     async with memory:
-        k1 = await memory.add_knowledge("user1", "User likes Python")
-        k2 = await memory.add_knowledge("user1", "User likes Python")
+        k1 = await memory.add_knowledge("user1", KnowledgeInput(statement="User likes Python"))
+        k2 = await memory.add_knowledge("user1", KnowledgeInput(statement="User likes Python"))
         assert k1 is not None
         assert k2 is None
 
@@ -562,10 +582,14 @@ async def test_add_knowledge_batch_dedup(tmp_path):
     memory = _make_memory(tmp_path, llm, embedder, enable_knowledge_dedup=True, knowledge_dedup_threshold=0.8)
     async with memory:
         # Pre-existing entry
-        await memory.add_knowledge("user1", "User likes Python")
+        await memory.add_knowledge("user1", KnowledgeInput(statement="User likes Python"))
 
         # Batch: one duplicate of existing, one duplicate within batch, one new
-        items = [KnowledgeInput("User likes Python"), KnowledgeInput("User likes cats"), KnowledgeInput("User likes cats")]
+        items = [
+            KnowledgeInput(statement="User likes Python"),
+            KnowledgeInput(statement="User likes cats"),
+            KnowledgeInput(statement="User likes cats"),
+        ]
         created = await memory.add_knowledge_batch("user1", items)
 
         assert len(created) == 1
@@ -579,12 +603,12 @@ async def test_add_knowledge_empty_statement(tmp_path):
     embedder = MockEmbedder()
     memory = _make_memory(tmp_path, llm, embedder)
     async with memory:
-        with pytest.raises(ValueError, match="non-empty"):
-            await memory.add_knowledge("user1", "")
-        with pytest.raises(ValueError, match="non-empty"):
-            await memory.add_knowledge("user1", "   ")
-        with pytest.raises(ValueError, match="non-empty"):
-            await memory.add_knowledge_batch("user1", [KnowledgeInput("")])
+        with pytest.raises(ValidationError, match="non-empty"):
+            await memory.add_knowledge("user1", KnowledgeInput(statement=""))
+        with pytest.raises(ValidationError, match="non-empty"):
+            await memory.add_knowledge("user1", KnowledgeInput(statement="   "))
+        with pytest.raises(ValidationError, match="non-empty"):
+            await memory.add_knowledge_batch("user1", [KnowledgeInput(statement="")])
 
 
 async def test_add_knowledge_invalid_temporal_range(tmp_path):
@@ -593,8 +617,10 @@ async def test_add_knowledge_invalid_temporal_range(tmp_path):
     embedder = MockEmbedder()
     memory = _make_memory(tmp_path, llm, embedder)
     async with memory:
-        with pytest.raises(ValueError, match="invalid_at must be after"):
-            await memory.add_knowledge("user1", "Fact", valid_at=_ts(60), invalid_at=_ts(0))
+        with pytest.raises(ValidationError, match="invalid_at must be after"):
+            await memory.add_knowledge("user1", KnowledgeInput(statement="Fact", valid_at=_ts(60), invalid_at=_ts(0)))
+        with pytest.raises(ValidationError, match="invalid_at must be after"):
+            await memory.add_knowledge_batch("user1", [KnowledgeInput(statement="Fact", valid_at=_ts(60), invalid_at=_ts(0))])
 
 
 async def test_add_knowledge_user_isolation(tmp_path):
@@ -603,8 +629,8 @@ async def test_add_knowledge_user_isolation(tmp_path):
     embedder = MockEmbedder()
     memory = _make_memory(tmp_path, llm, embedder)
     async with memory:
-        await memory.add_knowledge("user1", "User likes cats")
-        await memory.add_knowledge("user2", "User likes dogs")
+        await memory.add_knowledge("user1", KnowledgeInput(statement="User likes cats"))
+        await memory.add_knowledge("user2", KnowledgeInput(statement="User likes dogs"))
 
         r1 = await memory.retrieve("cats", user_id="user1")
         r2 = await memory.retrieve("dogs", user_id="user2")

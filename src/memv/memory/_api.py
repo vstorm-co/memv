@@ -134,7 +134,7 @@ async def clear_user(
     counts["knowledge_vectors"] = await lifecycle.vector_index.clear_user(user_id)
     counts["knowledge_text"] = await lifecycle.text_index.clear_user(user_id)
 
-    # Clear knowledge (covers both extracted and injected entries)
+    # Clear knowledge
     counts["knowledge"] = await lifecycle.knowledge.clear_user(user_id)
 
     # Clear episodes
@@ -189,9 +189,7 @@ async def delete_knowledge(lifecycle: LifecycleManager, knowledge_id: UUID | str
 async def add_knowledge(
     lifecycle: LifecycleManager,
     user_id: str,
-    statement: str,
-    valid_at: datetime | None = None,
-    invalid_at: datetime | None = None,
+    item: KnowledgeInput,
 ) -> SemanticKnowledge | None:
     """Inject knowledge directly.
 
@@ -203,27 +201,22 @@ async def add_knowledge(
     """
     lifecycle.ensure_open()
 
-    if not statement.strip():
-        raise ValueError("statement must be a non-empty string")
-    if valid_at is not None and invalid_at is not None and invalid_at <= valid_at:
-        raise ValueError("invalid_at must be after valid_at")
-
-    embedding = await lifecycle.embedder.embed(statement)
+    embedding = await lifecycle.embedder.embed(item.statement)
 
     if lifecycle.enable_knowledge_dedup:
         is_duplicate, score = await lifecycle.vector_index.has_near_duplicate(embedding, user_id, lifecycle.knowledge_dedup_threshold)
         if is_duplicate:
-            logger.info("Skipping duplicate injection: '%s...' (score=%.3f)", statement[:50], score)
+            logger.info("Skipping duplicate injection: '%s...' (score=%.3f)", item.statement[:50], score)
             return None
 
     knowledge = SemanticKnowledge(
         user_id=user_id,
-        statement=statement,
+        statement=item.statement,
         source_episode_id=None,
         importance_score=1.0,
         embedding=embedding,
-        valid_at=valid_at,
-        invalid_at=invalid_at,
+        valid_at=item.valid_at,
+        invalid_at=item.invalid_at,
     )
 
     await lifecycle.knowledge.add(knowledge)
@@ -255,12 +248,6 @@ async def add_knowledge_batch(
 
     if not items:
         return []
-
-    for item in items:
-        if not item.statement.strip():
-            raise ValueError("statement must be a non-empty string")
-        if item.valid_at is not None and item.invalid_at is not None and item.invalid_at <= item.valid_at:
-            raise ValueError("invalid_at must be after valid_at")
 
     statements = [item.statement for item in items]
     embeddings = await lifecycle.embedder.embed_batch(statements)

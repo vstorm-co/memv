@@ -349,9 +349,7 @@ class Memory:
     async def add_knowledge(
         self,
         user_id: str,
-        statement: str,
-        valid_at: datetime | None = None,
-        invalid_at: datetime | None = None,
+        item: KnowledgeInput,
     ) -> SemanticKnowledge | None:
         """Inject knowledge directly.
 
@@ -360,7 +358,7 @@ class Memory:
 
         Returns the created entry, or None if deduplicated.
         """
-        return await add_knowledge(self._lifecycle, user_id, statement, valid_at, invalid_at)
+        return await add_knowledge(self._lifecycle, user_id, item)
 
     async def add_knowledge_batch(
         self,

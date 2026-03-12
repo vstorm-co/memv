@@ -12,7 +12,7 @@ from memv.storage.sqlite._base import StoreBase
 
 
 class KnowledgeStore(StoreBase):
-    """Store for semantic knowledge extracted from episodes."""
+    """Store for semantic knowledge."""
 
     async def add(self, knowledge: SemanticKnowledge) -> None:
         await self._conn.execute(
