@@ -3,8 +3,10 @@
 import json
 from datetime import datetime, timedelta, timezone
 
+import pytest
+
+from memv import ExtractedKnowledge, KnowledgeInput
 from memv.memory.memory import Memory
-from memv.models import ExtractedKnowledge, KnowledgeInput
 from memv.processing.extraction import ExtractionResponse
 
 from .conftest import MockEmbedder, MockLLM
@@ -551,6 +553,48 @@ async def test_add_knowledge_dedup(tmp_path):
         assert k2 is None
 
         assert len(await memory.list_knowledge("user1")) == 1
+
+
+async def test_add_knowledge_batch_dedup(tmp_path):
+    """Batch dedup skips intra-batch and cross-existing duplicates."""
+    llm = MockLLM()
+    embedder = MockEmbedder()
+    memory = _make_memory(tmp_path, llm, embedder, enable_knowledge_dedup=True, knowledge_dedup_threshold=0.8)
+    async with memory:
+        # Pre-existing entry
+        await memory.add_knowledge("user1", "User likes Python")
+
+        # Batch: one duplicate of existing, one duplicate within batch, one new
+        items = [KnowledgeInput("User likes Python"), KnowledgeInput("User likes cats"), KnowledgeInput("User likes cats")]
+        created = await memory.add_knowledge_batch("user1", items)
+
+        assert len(created) == 1
+        assert created[0].statement == "User likes cats"
+        assert len(await memory.list_knowledge("user1")) == 2
+
+
+async def test_add_knowledge_empty_statement(tmp_path):
+    """Empty or whitespace-only statements are rejected."""
+    llm = MockLLM()
+    embedder = MockEmbedder()
+    memory = _make_memory(tmp_path, llm, embedder)
+    async with memory:
+        with pytest.raises(ValueError, match="non-empty"):
+            await memory.add_knowledge("user1", "")
+        with pytest.raises(ValueError, match="non-empty"):
+            await memory.add_knowledge("user1", "   ")
+        with pytest.raises(ValueError, match="non-empty"):
+            await memory.add_knowledge_batch("user1", [KnowledgeInput("")])
+
+
+async def test_add_knowledge_invalid_temporal_range(tmp_path):
+    """invalid_at before valid_at is rejected."""
+    llm = MockLLM()
+    embedder = MockEmbedder()
+    memory = _make_memory(tmp_path, llm, embedder)
+    async with memory:
+        with pytest.raises(ValueError, match="invalid_at must be after"):
+            await memory.add_knowledge("user1", "Fact", valid_at=_ts(60), invalid_at=_ts(0))
 
 
 async def test_add_knowledge_user_isolation(tmp_path):

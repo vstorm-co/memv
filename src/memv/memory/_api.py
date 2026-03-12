@@ -203,6 +203,11 @@ async def add_knowledge(
     """
     lifecycle.ensure_open()
 
+    if not statement.strip():
+        raise ValueError("statement must be a non-empty string")
+    if valid_at is not None and invalid_at is not None and invalid_at <= valid_at:
+        raise ValueError("invalid_at must be after valid_at")
+
     embedding = await lifecycle.embedder.embed(statement)
 
     if lifecycle.enable_knowledge_dedup:
@@ -250,6 +255,12 @@ async def add_knowledge_batch(
 
     if not items:
         return []
+
+    for item in items:
+        if not item.statement.strip():
+            raise ValueError("statement must be a non-empty string")
+        if item.valid_at is not None and item.invalid_at is not None and item.invalid_at <= item.valid_at:
+            raise ValueError("invalid_at must be after valid_at")
 
     statements = [item.statement for item in items]
     embeddings = await lifecycle.embedder.embed_batch(statements)
