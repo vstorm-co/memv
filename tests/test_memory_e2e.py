@@ -4,7 +4,7 @@ import json
 from datetime import datetime, timedelta, timezone
 
 from memv.memory.memory import Memory
-from memv.models import ExtractedKnowledge
+from memv.models import ExtractedKnowledge, KnowledgeInput
 from memv.processing.extraction import ExtractionResponse
 
 from .conftest import MockEmbedder, MockLLM
@@ -527,8 +527,6 @@ async def test_add_knowledge_temporal(tmp_path):
 
 async def test_add_knowledge_batch(tmp_path):
     """Batch inject multiple entries."""
-    from memv.models import KnowledgeInput
-
     llm = MockLLM()
     embedder = MockEmbedder()
     memory = _make_memory(tmp_path, llm, embedder, enable_knowledge_dedup=False)

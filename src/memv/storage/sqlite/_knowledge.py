@@ -162,7 +162,10 @@ class KnowledgeStore(StoreBase):
         return cursor.rowcount > 0
 
     async def clear_by_episodes(self, episode_ids: Sequence[UUID | str]) -> int:
-        """Delete all knowledge entries for given episodes. Returns count of deleted entries."""
+        """Delete all knowledge entries for given episodes. Returns count of deleted entries.
+
+        Note: Does not affect injected knowledge (source_episode_id=NULL). Use clear_user() for complete deletion.
+        """
         if not episode_ids:
             return 0
         placeholders = ",".join("?" * len(episode_ids))
