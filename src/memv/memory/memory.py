@@ -8,6 +8,8 @@ from typing import TYPE_CHECKING
 from memv.config import MemoryConfig
 from memv.memory._api import (
     add_exchange,
+    add_knowledge,
+    add_knowledge_batch,
     add_message,
     clear_user,
     delete_knowledge,
@@ -15,12 +17,6 @@ from memv.memory._api import (
     invalidate_knowledge,
     list_knowledge,
     retrieve,
-)
-from memv.memory._api import (
-    add_knowledge as _add_knowledge,
-)
-from memv.memory._api import (
-    add_knowledge_batch as _add_knowledge_batch,
 )
 from memv.memory._lifecycle import LifecycleManager
 from memv.memory._pipeline import Pipeline
@@ -360,10 +356,11 @@ class Memory:
         """Inject knowledge directly.
 
         The statement is embedded, optionally deduplicated, and indexed immediately.
+        Injected knowledge is assigned importance_score=1.0 (maximum).
 
         Returns the created entry, or None if deduplicated.
         """
-        return await _add_knowledge(self._lifecycle, user_id, statement, valid_at, invalid_at)
+        return await add_knowledge(self._lifecycle, user_id, statement, valid_at, invalid_at)
 
     async def add_knowledge_batch(
         self,
@@ -372,6 +369,8 @@ class Memory:
     ) -> list[SemanticKnowledge]:
         """Batch inject multiple knowledge entries with batch embedding.
 
+        Each injected entry is assigned importance_score=1.0 (maximum).
+
         Args:
             user_id: User this knowledge belongs to
             items: List of knowledge entries (statement, valid_at, invalid_at)
@@ -379,4 +378,4 @@ class Memory:
         Returns:
             List of created entries (excludes duplicates).
         """
-        return await _add_knowledge_batch(self._lifecycle, user_id, items)
+        return await add_knowledge_batch(self._lifecycle, user_id, items)

@@ -196,7 +196,8 @@ async def add_knowledge(
     """Inject knowledge directly.
 
     Embeds the statement, optionally checks for duplicates, and indexes
-    in both vector and text indices.
+    in both vector and text indices. Injected knowledge is assigned
+    importance_score=1.0 (maximum), representing explicit user intent.
 
     Returns the created entry, or None if deduplicated.
     """
@@ -233,6 +234,9 @@ async def add_knowledge_batch(
     items: list[KnowledgeInput],
 ) -> list[SemanticKnowledge]:
     """Batch inject multiple knowledge entries.
+
+    Uses batch embedding for efficiency. Each injected entry is assigned
+    importance_score=1.0 (maximum), representing explicit user intent.
 
     Args:
         lifecycle: LifecycleManager instance

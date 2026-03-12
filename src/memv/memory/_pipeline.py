@@ -189,7 +189,7 @@ class Pipeline:
                     embedding, user_id, self._lc.knowledge_dedup_threshold
                 )
                 if is_duplicate:
-                    logger.info(f"Skipping duplicate: '{item.statement[:50]}...' (score={score:.3f})")
+                    logger.info("Skipping duplicate: '%s...' (score=%.3f)", item.statement[:50], score)
                     continue
 
             knowledge = SemanticKnowledge(
