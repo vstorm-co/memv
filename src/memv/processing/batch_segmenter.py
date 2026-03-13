@@ -5,12 +5,15 @@ Groups messages into coherent episodes using a single LLM call,
 handling interleaved topics and time gaps correctly.
 """
 
+import asyncio
 import json
 from datetime import timedelta
 
 from memv.models import Message
 from memv.processing.prompts import batch_segmentation_prompt
 from memv.protocols import LLMClient
+
+MAX_CONCURRENT_SEGMENTATIONS = 10
 
 
 class BatchSegmenter:
@@ -44,7 +47,7 @@ class BatchSegmenter:
 
         Flow:
         1. Split on time gaps first (creates independent batches)
-        2. For each batch, use LLM to group by topic
+        2. For each batch, use LLM to group by topic (concurrently)
         3. Return all episode groups
 
         Args:
@@ -62,16 +65,20 @@ class BatchSegmenter:
         # Step 1: Split on time gaps
         time_batches = self._split_on_time_gaps(messages)
 
-        # Step 2: Segment each batch semantically
-        all_episodes: list[list[Message]] = []
-        for batch in time_batches:
+        # Step 2: Segment each batch semantically (concurrently)
+        semaphore = asyncio.Semaphore(MAX_CONCURRENT_SEGMENTATIONS)
+
+        async def _segment_or_passthrough(batch: list[Message]) -> list[list[Message]]:
             if len(batch) <= 2:
-                # Small batches don't need LLM segmentation
-                all_episodes.append(batch)
-            else:
-                # Use LLM to group by topic
-                episode_groups = await self._segment_batch(batch)
-                all_episodes.extend(episode_groups)
+                return [batch]
+            async with semaphore:
+                return await self._segment_batch(batch)
+
+        batch_results = await asyncio.gather(*[_segment_or_passthrough(b) for b in time_batches])
+
+        all_episodes: list[list[Message]] = []
+        for groups in batch_results:
+            all_episodes.extend(groups)
 
         return all_episodes
 

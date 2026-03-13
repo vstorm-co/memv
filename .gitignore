@@ -235,3 +235,10 @@ pyrightconfig.json
 # Local roadmap files
 ROADMAP.md
 agentmemory-roadmap.md
+
+# Hookify rules (personal)
+.claude/*.local.md
+
+# Benchmark data and results
+benchmarks/data/*.json
+benchmarks/results/*/

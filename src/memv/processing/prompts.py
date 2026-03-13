@@ -39,15 +39,18 @@ Apply these quality tests to each candidate fact:
 # =============================================================================
 
 KNOWLEDGE_CATEGORIES = """
-Extract knowledge that fits these categories:
+Extract knowledge ABOUT THE USER that fits these categories:
 
-- **Identity & Background**: Name, profession, location, education, demographics
-- **Persistent Preferences**: Technology choices, communication style, work patterns
-- **Technical Details**: Stack, tools, projects, codebases, technical constraints
-- **Relationships**: Family, colleagues, pets, organizations they belong to
-- **Goals & Plans**: Short and long-term objectives, deadlines, milestones
-- **Beliefs & Values**: Opinions, priorities, decision-making criteria
-- **Habits & Patterns**: Recurring behaviors, routines, typical responses
+- **Identity & Background**: User's name, profession, location, education, demographics
+- **Persistent Preferences**: User's technology choices, communication style, work patterns
+- **Technical Details**: User's stack, tools, projects, codebases, technical constraints
+- **Relationships**: User's family, colleagues, pets, organizations they belong to
+- **Goals & Plans**: User's short and long-term objectives, deadlines, milestones
+- **Beliefs & Values**: User's opinions, priorities, decision-making criteria
+- **Habits & Patterns**: User's recurring behaviors, routines, typical responses
+
+CRITICAL: Only extract facts that help understand the USER long-term.
+Do NOT extract general knowledge, topic content, or information the assistant provided as educational material.
 """
 
 # =============================================================================
@@ -58,12 +61,17 @@ Extract knowledge that fits these categories:
 EXCLUSIONS = """
 Do NOT extract:
 
+- **General/topical knowledge**: Facts about the world, science, history, technology, etc.
+  (e.g., "Radiation therapy uses ionizing radiation", "Bitcoin uses blockchain", "Python is a programming language")
+- **Educational content from assistant**: Information the assistant explained or taught
+  (e.g., "HTTP uses TCP", "Kubernetes orchestrates containers")
+- **Conversation topic summaries**: What the conversation was about, not facts about the user
+  (e.g., "The conversation covered cooking techniques", "They discussed radiation therapy")
 - Temporary emotions or reactions ("user seems frustrated")
 - Single conversation acknowledgments ("user said thanks")
 - Vague statements without specifics ("user likes food")
 - Context-dependent information ("user prefers this one")
 - Generic pleasantries or filler
-- Obvious or common knowledge
 - Speculative or uncertain claims
 - Conversation events ("User asked about X", "User requested Y") - extract the FACT, not the action
 
@@ -283,6 +291,10 @@ Topic: {episode_title}
 - "User moved to Berlin in 2023" (resolved, not "last year")
 
 ### BAD Extractions:
+- "Radiation therapy uses ionizing radiation to kill cancer cells" (general knowledge, not about the user)
+- "Bitcoin is a decentralized cryptocurrency" (topic content, not about the user)
+- "A kitchen knife should be sharpened at a 15-20 degree angle" (educational content from assistant)
+- "The fox-chicken-grain riddle is a classic river crossing puzzle" (general knowledge)
 - "I use JavaScript" (raw copy - should be "User uses JavaScript")
 - "He started using it yesterday" (unresolved pronoun + relative time → "User started using FastAPI on 2024-06-14")
 - "They moved there last year" (unresolved pronoun + relative time → "User moved to Berlin in 2023")
@@ -308,7 +320,9 @@ For each extracted item, specify:
 - invalid_at: ISO 8601 datetime when fact stops being true, or null if still true (e.g., "2024-12-31T23:59:59Z")
 - confidence: 0.0-1.0
 
-Extract ALL concrete facts. Multiple extractions from one episode is expected."""
+Quality over quantity — fewer valuable statements about the USER are better than many generic ones.
+Only extract facts that help understand the user long-term. If a conversation is about a general topic
+(cooking, physics, history) but reveals nothing personal about the user, return an EMPTY list."""
 
 
 def extraction_prompt_with_prediction(
@@ -380,6 +394,8 @@ Focus on SPECIFIC DETAILS even if the general topic was predicted:
 - "User moved to Berlin in 2023" (resolved, not "last year")
 
 ### BAD Extractions:
+- "Radiation therapy uses ionizing radiation" (general knowledge, not about user)
+- "Bitcoin uses proof-of-work consensus" (topic content, not about user)
 - "He started using it yesterday" (unresolved pronoun + relative time)
 - "They moved there last year" (unresolved pronoun + relative time)
 - "User is interested in X" (too vague)
@@ -401,7 +417,9 @@ For each extracted item, specify:
 - confidence: 0.0-1.0
 - supersedes: If this fact replaces an entry from <existing_knowledge>, set to its index number. Otherwise null.
 
-Return EMPTY LIST if no concrete facts found beyond the prediction."""
+Quality over quantity — fewer valuable statements about the USER are better than many generic ones.
+Return EMPTY LIST if no facts about the user are found beyond the prediction.
+General knowledge or topic content discussed in conversation is NOT extractable."""
 
 
 # =============================================================================

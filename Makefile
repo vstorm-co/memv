@@ -43,6 +43,18 @@ docs: ## Build the documentation
 docs-serve: ## Build and serve the documentation
 	uv run mkdocs serve
 
+.PHONY: benchmark
+benchmark: ## Run LongMemEval benchmark (all 3 stages)
+	uv run python -m benchmarks.longmemeval.run
+
+.PHONY: benchmark-smoke
+benchmark-smoke: ## Quick 3-question benchmark sanity check
+	uv run python -m benchmarks.longmemeval.run --num-questions 3 --run-name smoke --config fast
+
+.PHONY: benchmark-baseline
+benchmark-baseline: ## Full baseline benchmark run (concurrent)
+	uv run python -m benchmarks.longmemeval.run --run-name baseline --max-concurrent 20
+
 .PHONY: all
 all: format lint typecheck test ## Run formatting, linting, type checks, and tests
 
