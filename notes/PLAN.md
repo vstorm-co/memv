@@ -221,7 +221,7 @@ Moved out of v0.1.1. Harness is built and smoke-tested (3 questions, 66.7% on fa
 
 Current protocols are incomplete — they define read interfaces but omit mutation methods the codebase actually calls. `VectorIndex` and `TextIndex` have no protocol at all. `LifecycleManager` imports concrete SQLite classes directly. This blocks any alternative backend.
 
-- [x] Complete store protocols — add all methods actually used (KnowledgeStore: `get_all`, `get_current`, `get_valid_at`, `invalidate`, `invalidate_with_successor`, `delete`, `clear_by_episodes`, `count`, `list_by_user`, `count_by_user`; MessageStore: `list_users`, `count`, `delete`, `clear_user`; EpisodeStore: `count`, `delete`, `clear_user`, `update`)
+- [x] Complete store protocols — add all user-scoped methods (KnowledgeStore: `invalidate`, `invalidate_with_successor`, `delete`, `clear_by_episodes`, `list_by_user`, `count_by_user`; MessageStore: `list_users`, `count`, `delete`, `clear_user`; EpisodeStore: `count`, `delete`, `clear_user`, `update`). Unscoped methods (`get_all`, `get_current`, `get_valid_at`, `count`) intentionally excluded — violate user isolation. SQLite keeps them for dashboard; scoped versions will be added to protocol when needed.
 - [x] Add `VectorIndex` protocol (`open`, `close`, `add`, `search`, `search_with_scores`, `has_near_duplicate`, `delete`, `clear_user`)
 - [x] Add `TextIndex` protocol (`open`, `close`, `add`, `search`, `delete`, `clear_user`)
 - [x] Add `open`/`close` to all store protocols
