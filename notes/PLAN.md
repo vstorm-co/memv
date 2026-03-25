@@ -221,12 +221,12 @@ Moved out of v0.1.1. Harness is built and smoke-tested (3 questions, 66.7% on fa
 
 Current protocols are incomplete — they define read interfaces but omit mutation methods the codebase actually calls. `VectorIndex` and `TextIndex` have no protocol at all. `LifecycleManager` imports concrete SQLite classes directly. This blocks any alternative backend.
 
-- [ ] Complete store protocols — add all methods actually used (KnowledgeStore: `get_all`, `get_current`, `get_valid_at`, `invalidate`, `delete`, `clear_by_episodes`, `count`, `list_by_user`, `count_by_user`; MessageStore: `list_users`, `count`, `delete`, `clear_user`; EpisodeStore: `count`, `delete`, `clear_user`, `update`)
-- [ ] Add `VectorIndex` protocol (`open`, `close`, `add`, `search`, `delete`, `clear_user`)
-- [ ] Add `TextIndex` protocol (`open`, `close`, `add`, `search`, `delete`, `clear_user`)
-- [ ] Add `open`/`close` to all store protocols
-- [ ] Backend factory in `LifecycleManager` — config-driven creation instead of hardcoded SQLite imports
-- [ ] Fix Retriever imports — import from `memv.protocols` instead of `memv.storage`
+- [x] Complete store protocols — add all methods actually used (KnowledgeStore: `get_all`, `get_current`, `get_valid_at`, `invalidate`, `invalidate_with_successor`, `delete`, `clear_by_episodes`, `count`, `list_by_user`, `count_by_user`; MessageStore: `list_users`, `count`, `delete`, `clear_user`; EpisodeStore: `count`, `delete`, `clear_user`, `update`)
+- [x] Add `VectorIndex` protocol (`open`, `close`, `add`, `search`, `search_with_scores`, `has_near_duplicate`, `delete`, `clear_user`)
+- [x] Add `TextIndex` protocol (`open`, `close`, `add`, `search`, `delete`, `clear_user`)
+- [x] Add `open`/`close` to all store protocols
+- [x] Backend factory in `LifecycleManager` — config-driven creation via `MemoryConfig.backend`, lazy imports
+- [x] Fix Retriever imports — import from `memv.protocols` instead of `memv.storage`
 
 ### 8. PostgreSQL Backend
 
@@ -252,6 +252,21 @@ Production-grade alternative. SQLite is fine for dev/single-process, but anythin
 - All protocols have complete method coverage matching actual usage
 - A new backend can be implemented purely from protocols (no need to read SQLite source)
 - `make all` passes
+
+### 9. Embedding Adapters
+
+Only OpenAI today. Users want provider choice and a no-API-key local option. The `EmbeddingClient` protocol is 2 methods — each adapter is ~15 lines.
+
+**Adapters:**
+- [ ] Voyage AI (`memvee[voyage]`) — `voyageai` SDK, `voyage-3-lite` default
+- [ ] Cohere (`memvee[cohere]`) — `cohere` SDK, `embed-v4.0` default
+- [ ] Local/fastembed (`memvee[local]`) — `fastembed` (ONNX, no GPU required), `BAAI/bge-small-en-v1.5` default (384 dims)
+- [ ] Update `MemoryConfig.embedding_dimensions` handling — adapters should declare their dimensions so users don't have to set it manually
+
+**Not adding:**
+- Sentence-transformers — heavier dependency (PyTorch). `fastembed` covers the local use case with ONNX.
+- More vector DB backends (Qdrant, Pinecone, Milvus, Chroma) — they only replace VectorIndex, not TextIndex. memv's hybrid retrieval (vector + BM25 via RRF) is a strength. Splitting storage across two systems adds operational complexity without clear demand. Revisit if users request it.
+- More LLM adapters — PydanticAI already supports OpenAI, Anthropic, Google, Groq, Ollama, and others. No work needed.
 
 ---
 

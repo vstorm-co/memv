@@ -7,8 +7,7 @@ from typing import TYPE_CHECKING
 from uuid import UUID
 
 from memv.models import RetrievalResult, SemanticKnowledge
-from memv.protocols import EmbeddingClient, KnowledgeStore
-from memv.storage import TextIndex, VectorIndex
+from memv.protocols import EmbeddingClient, KnowledgeStore, TextIndex, VectorIndex
 
 if TYPE_CHECKING:
     from memv.cache import EmbeddingCache

@@ -21,6 +21,7 @@ class MemoryConfig:
     """
 
     # Database
+    backend: str = "sqlite"
     db_path: str = ".db/memory.db"
     embedding_dimensions: int = 1536
 

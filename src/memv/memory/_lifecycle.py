@@ -10,16 +10,9 @@ from memv.cache import EmbeddingCache
 from memv.config import MemoryConfig
 from memv.processing import BatchSegmenter, BoundaryDetector, EpisodeGenerator, EpisodeMerger, PredictCalibrateExtractor
 from memv.retrieval import Retriever
-from memv.storage import (
-    EpisodeStore,
-    KnowledgeStore,
-    MessageStore,
-    TextIndex,
-    VectorIndex,
-)
 
 if TYPE_CHECKING:
-    from memv.protocols import EmbeddingClient, LLMClient
+    from memv.protocols import EmbeddingClient, EpisodeStore, KnowledgeStore, LLMClient, MessageStore, TextIndex, VectorIndex
 
 
 class LifecycleManager:
@@ -106,19 +99,13 @@ class LifecycleManager:
             embedding_cache_ttl_seconds if embedding_cache_ttl_seconds is not None else cfg.embedding_cache_ttl_seconds
         )
 
-        # Ensure parent directory exists
-        db_dir = Path(self.db_path).parent
-        if db_dir != Path("."):
-            db_dir.mkdir(parents=True, exist_ok=True)
-
-        # Stores
-        self.messages = MessageStore(self.db_path)
-        self.episodes = EpisodeStore(self.db_path)
-        self.knowledge = KnowledgeStore(self.db_path)
-
-        # Knowledge indices
-        self.vector_index = VectorIndex(self.db_path, dimensions=self.dimensions, name="knowledge")
-        self.text_index = TextIndex(self.db_path, name="knowledge")
+        # Create stores via backend factory
+        self.messages: MessageStore
+        self.episodes: EpisodeStore
+        self.knowledge: KnowledgeStore
+        self.vector_index: VectorIndex
+        self.text_index: TextIndex
+        self._create_stores(cfg.backend)
 
         # Processing components (initialized in open())
         self.retriever: Retriever | None = None
@@ -130,6 +117,24 @@ class LifecycleManager:
 
         # State
         self.is_open = False
+
+    def _create_stores(self, backend: str) -> None:
+        """Instantiate stores and indices for the given backend."""
+        if backend == "sqlite":
+            # Ensure parent directory exists
+            db_dir = Path(self.db_path).parent
+            if db_dir != Path("."):
+                db_dir.mkdir(parents=True, exist_ok=True)
+
+            from memv.storage.sqlite import EpisodeStore, KnowledgeStore, MessageStore, TextIndex, VectorIndex
+
+            self.messages = MessageStore(self.db_path)
+            self.episodes = EpisodeStore(self.db_path)
+            self.knowledge = KnowledgeStore(self.db_path)
+            self.vector_index = VectorIndex(self.db_path, dimensions=self.dimensions, name="knowledge")
+            self.text_index = TextIndex(self.db_path, name="knowledge")
+        else:
+            raise ValueError(f"Unknown backend: {backend!r}. Supported: 'sqlite'.")
 
     async def open(self) -> None:
         """Open all database connections and initialize components."""
