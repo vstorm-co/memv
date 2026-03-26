@@ -83,7 +83,7 @@ async def main():
 
     # Initialize memory with auto-processing enabled
     memory = Memory(
-        db_path=".db/memv.db",
+        db_url=".db/memv.db",
         embedding_client=OpenAIEmbedAdapter(),
         llm_client=PydanticAIAdapter("openai:gpt-4.1-mini"),
         auto_process=True,  # Enable automatic background processing

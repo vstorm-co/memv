@@ -15,12 +15,20 @@ if TYPE_CHECKING:
     from memv.protocols import EmbeddingClient, EpisodeStore, KnowledgeStore, LLMClient, MessageStore, TextIndex, VectorIndex
 
 
+def _resolve_backend(backend: str, db_url: str) -> str:
+    """Resolve backend from config. 'auto' detects from db_url prefix."""
+    if backend != "auto":
+        return backend
+    if db_url.startswith(("postgresql://", "postgres://")):
+        return "postgres"
+    return "sqlite"
+
+
 class LifecycleManager:
     """Manages Memory initialization, database connections, and component lifecycle."""
 
     def __init__(
         self,
-        db_path: str | None = None,
         db_url: str | None = None,
         embedding_client: EmbeddingClient | None = None,
         llm_client: LLMClient | None = None,
@@ -47,32 +55,16 @@ class LifecycleManager:
         embedding_cache_size: int | None = None,
         embedding_cache_ttl_seconds: int | None = None,
     ):
-        # Use config or defaults
         cfg = config or MemoryConfig()
 
-        # Auto-detect backend from db_url
-        effective_db_url = db_url or cfg.db_url
-        if effective_db_url:
-            self._backend = "postgres"
-            self.db_url = effective_db_url
-        else:
-            self._backend = cfg.backend
-            self.db_url = None
-
-        # Determine database path from argument or config
-        if db_path is None and embedding_client is None:
-            self.db_path = cfg.db_path
-        elif db_path is not None:
-            self.db_path = db_path
-        else:
-            self.db_path = cfg.db_path
+        self.db_url = db_url or cfg.db_url
+        self._backend = _resolve_backend(cfg.backend, self.db_url)
 
         if embedding_client is None:
             raise ValueError("embedding_client is required")
         self.embedder = embedding_client
         self.llm = llm_client
 
-        # Use param if provided, else use config value
         self.dimensions = embedding_dimensions if embedding_dimensions is not None else cfg.embedding_dimensions
 
         # Auto-processing config
@@ -109,17 +101,13 @@ class LifecycleManager:
             embedding_cache_ttl_seconds if embedding_cache_ttl_seconds is not None else cfg.embedding_cache_ttl_seconds
         )
 
-        # Store type annotations (assigned in _create_stores or open)
         self.messages: MessageStore
         self.episodes: EpisodeStore
         self.knowledge: KnowledgeStore
         self.vector_index: VectorIndex
         self.text_index: TextIndex
-
-        # Postgres pool (created in open, closed in close)
         self._pg_pool: Any = None
 
-        # Create stores for sqlite immediately; postgres defers to open()
         if self._backend == "sqlite":
             self._create_sqlite_stores()
         elif self._backend != "postgres":
@@ -133,21 +121,20 @@ class LifecycleManager:
         self.episode_merger: EpisodeMerger | None = None
         self.extractor: PredictCalibrateExtractor | None = None
 
-        # State
         self.is_open = False
 
     def _create_sqlite_stores(self) -> None:
-        db_dir = Path(self.db_path).parent
+        db_dir = Path(self.db_url).parent
         if db_dir != Path("."):
             db_dir.mkdir(parents=True, exist_ok=True)
 
         from memv.storage.sqlite import EpisodeStore, KnowledgeStore, MessageStore, TextIndex, VectorIndex
 
-        self.messages = MessageStore(self.db_path)
-        self.episodes = EpisodeStore(self.db_path)
-        self.knowledge = KnowledgeStore(self.db_path)
-        self.vector_index = VectorIndex(self.db_path, dimensions=self.dimensions, name="knowledge")
-        self.text_index = TextIndex(self.db_path, name="knowledge")
+        self.messages = MessageStore(self.db_url)
+        self.episodes = EpisodeStore(self.db_url)
+        self.knowledge = KnowledgeStore(self.db_url)
+        self.vector_index = VectorIndex(self.db_url, dimensions=self.dimensions, name="knowledge")
+        self.text_index = TextIndex(self.db_url, name="knowledge")
 
     async def _create_postgres_stores(self) -> None:
         import asyncpg
@@ -171,7 +158,6 @@ class LifecycleManager:
         if self.is_open:
             return
 
-        # Postgres stores are created here (pool creation is async)
         if self._backend == "postgres":
             await self._create_postgres_stores()
 
@@ -181,7 +167,6 @@ class LifecycleManager:
         await self.vector_index.open()
         await self.text_index.open()
 
-        # Create embedding cache if enabled
         embedding_cache = None
         if self.enable_embedding_cache:
             embedding_cache = EmbeddingCache(

@@ -11,7 +11,7 @@ from memv.llm import PydanticAIAdapter
 
 async def main():
     memory = Memory(
-        db_path="memory.db",
+        db_url="memory.db",
         embedding_client=OpenAIEmbedAdapter(),
         llm_client=PydanticAIAdapter("openai:gpt-4o-mini"),
     )

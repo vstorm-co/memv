@@ -27,7 +27,8 @@ memory = Memory(config=config, auto_process=True, ...)
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
-| `db_path` | `".db/memory.db"` | SQLite database file path. Parent directories are auto-created. |
+| `db_url` | `".db/memory.db"` | Database URL. File path for SQLite, `"postgresql://..."` for Postgres. |
+| `backend` | `"auto"` | Backend selection: `"auto"` (detect from URL), `"sqlite"`, or `"postgres"`. |
 | `embedding_dimensions` | `1536` | Vector dimensions. Must match your embedding model. |
 
 ### Processing Triggers

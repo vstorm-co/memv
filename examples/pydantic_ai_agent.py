@@ -107,7 +107,7 @@ async def main():
 
     # Initialize memory with auto-processing
     memory = Memory(
-        db_path=".db/pydantic_agent.db",
+        db_url=".db/pydantic_agent.db",
         embedding_client=OpenAIEmbedAdapter(),
         llm_client=PydanticAIAdapter("openai:gpt-4o-mini"),
         auto_process=True,

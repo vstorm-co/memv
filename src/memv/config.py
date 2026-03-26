@@ -21,9 +21,8 @@ class MemoryConfig:
     """
 
     # Database
-    backend: str = "sqlite"
-    db_path: str = ".db/memory.db"
-    db_url: str | None = None  # PostgreSQL connection URL (e.g. "postgresql://user:pass@host/db")
+    backend: str = "auto"  # "auto", "sqlite", or "postgres" — auto detects from db_url
+    db_url: str = ".db/memory.db"  # file path for SQLite, "postgresql://..." for Postgres
     embedding_dimensions: int = 1536
 
     # Processing triggers

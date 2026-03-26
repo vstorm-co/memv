@@ -42,11 +42,11 @@ async def main():
     llm = PydanticAIAdapter("openai:gpt-4o-mini")
 
     # Create memory instance
-    # - db_path: SQLite database file (created if doesn't exist)
+    # - db_url: SQLite file path or PostgreSQL URL
     # - embedding_client: for creating embeddings
     # - llm_client: for processing (episode generation, knowledge extraction)
     async with Memory(
-        db_path=".db/demo_memory.db",
+        db_url=".db/demo_memory.db",
         embedding_client=embedder,
         llm_client=llm,
     ) as memory:

@@ -462,7 +462,7 @@ class DashboardApp(App):
             llm = PydanticAIAdapter("openai:gpt-4o-mini")
 
             async with Memory(
-                db_path=self.db_path,
+                db_url=self.db_path,
                 embedding_client=embedder,
                 llm_client=llm,
             ) as memory:

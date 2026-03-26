@@ -90,7 +90,7 @@ async def main():
     console.print("[dim]Commands: quit, flush, debug[/dim]\n")
 
     memory = Memory(
-        db_path=".db/autogen_agent.db",
+        db_url=".db/autogen_agent.db",
         embedding_client=OpenAIEmbedAdapter(),
         llm_client=PydanticAIAdapter("openai:gpt-4o-mini"),
         auto_process=True,

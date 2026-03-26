@@ -26,9 +26,8 @@ def _extraction(statements: list[str]) -> ExtractionResponse:
 
 
 def _make_memory(tmp_path, llm, embedder, **kwargs):
-    db_path = str(tmp_path / "e2e.db")
     return Memory(
-        db_path=db_path,
+        db_url=str(tmp_path / "e2e.db"),
         embedding_client=embedder,
         llm_client=llm,
         embedding_dimensions=1536,
