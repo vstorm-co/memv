@@ -87,12 +87,15 @@ class EpisodeStore(PgStoreBase):
         return _parse_rowcount(status) > 0
 
     def _row_to_episode(self, row: asyncpg.Record) -> Episode:
+        original_messages = row["original_messages"]
+        if isinstance(original_messages, str):
+            original_messages = json.loads(original_messages)
         return Episode(
             id=UUID(row["id"]),
             user_id=row["user_id"],
             title=row["title"],
             content=row["content"],
-            original_messages=row["original_messages"],
+            original_messages=original_messages,
             start_time=datetime.fromtimestamp(row["start_time"], tz=timezone.utc),
             end_time=datetime.fromtimestamp(row["end_time"], tz=timezone.utc),
             created_at=datetime.fromtimestamp(row["created_at"], tz=timezone.utc),

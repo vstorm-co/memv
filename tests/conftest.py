@@ -37,27 +37,30 @@ def backend(request):
 # Postgres pool management
 # ---------------------------------------------------------------------------
 
-_pg_pool = None
+_pg_extension_created = False
 
 
-async def _get_or_create_pg_pool():
-    global _pg_pool
-    if _pg_pool is not None:
-        return _pg_pool
+async def _create_pg_pool():
+    global _pg_extension_created
     url = os.environ.get("MEMV_TEST_POSTGRES_URL")
     if not url:
         pytest.skip("MEMV_TEST_POSTGRES_URL not set")
     import asyncpg
     from pgvector.asyncpg import register_vector
 
+    if not _pg_extension_created:
+        conn = await asyncpg.connect(url)
+        await conn.execute("CREATE EXTENSION IF NOT EXISTS vector")
+        await conn.close()
+        _pg_extension_created = True
+
     async def _init(conn):
         await register_vector(conn)
 
-    _pg_pool = await asyncpg.create_pool(url, init=_init, min_size=1, max_size=5)
-    return _pg_pool
+    return await asyncpg.create_pool(url, init=_init, min_size=1, max_size=5)
 
 
-async def _cleanup_pg_tables(pool):
+async def _cleanup_pg(pool):
     tables = ["messages", "episodes", "semantic_knowledge", "vec_knowledge", "fts_knowledge"]
     async with pool.acquire() as conn:
         for table in tables:
@@ -65,6 +68,7 @@ async def _cleanup_pg_tables(pool):
                 await conn.execute(f"DELETE FROM {table}")  # noqa: S608
             except Exception:
                 pass
+    await pool.close()
 
 
 # ---------------------------------------------------------------------------
@@ -77,11 +81,11 @@ async def message_store(backend, tmp_path):
     if backend == "postgres":
         from memv.storage.postgres import MessageStore as PgMessageStore
 
-        pool = await _get_or_create_pg_pool()
+        pool = await _create_pg_pool()
         store = PgMessageStore(pool)
         await store.open()
         yield store
-        await _cleanup_pg_tables(pool)
+        await _cleanup_pg(pool)
     else:
         store = SqliteMessageStore(str(tmp_path / "test.db"))
         async with store:
@@ -93,11 +97,11 @@ async def episode_store(backend, tmp_path):
     if backend == "postgres":
         from memv.storage.postgres import EpisodeStore as PgEpisodeStore
 
-        pool = await _get_or_create_pg_pool()
+        pool = await _create_pg_pool()
         store = PgEpisodeStore(pool)
         await store.open()
         yield store
-        await _cleanup_pg_tables(pool)
+        await _cleanup_pg(pool)
     else:
         store = SqliteEpisodeStore(str(tmp_path / "test.db"))
         async with store:
@@ -109,11 +113,11 @@ async def knowledge_store(backend, tmp_path):
     if backend == "postgres":
         from memv.storage.postgres import KnowledgeStore as PgKnowledgeStore
 
-        pool = await _get_or_create_pg_pool()
+        pool = await _create_pg_pool()
         store = PgKnowledgeStore(pool)
         await store.open()
         yield store
-        await _cleanup_pg_tables(pool)
+        await _cleanup_pg(pool)
     else:
         store = SqliteKnowledgeStore(str(tmp_path / "test.db"))
         async with store:
@@ -125,11 +129,11 @@ async def text_index(backend, tmp_path):
     if backend == "postgres":
         from memv.storage.postgres import TextIndex as PgTextIndex
 
-        pool = await _get_or_create_pg_pool()
+        pool = await _create_pg_pool()
         idx = PgTextIndex(pool)
         await idx.open()
         yield idx
-        await _cleanup_pg_tables(pool)
+        await _cleanup_pg(pool)
     else:
         idx = SqliteTextIndex(str(tmp_path / "test.db"))
         async with idx:
@@ -141,11 +145,11 @@ async def vector_index(backend, tmp_path):
     if backend == "postgres":
         from memv.storage.postgres import VectorIndex as PgVectorIndex
 
-        pool = await _get_or_create_pg_pool()
+        pool = await _create_pg_pool()
         idx = PgVectorIndex(pool, dimensions=4)
         await idx.open()
         yield idx
-        await _cleanup_pg_tables(pool)
+        await _cleanup_pg(pool)
     else:
         idx = SqliteVectorIndex(str(tmp_path / "test.db"), dimensions=4)
         try:
