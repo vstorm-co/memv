@@ -237,14 +237,14 @@ Production-grade alternative. SQLite is fine for dev/single-process, but anythin
 | MessageStore | Regular SQL | Regular SQL (trivial port) |
 | EpisodeStore | SQL + JSON | SQL + `jsonb` |
 | KnowledgeStore | SQL + JSON | SQL + `jsonb` |
-| VectorIndex | `sqlite-vec` | `pgvector` (`vector` type, `<=>` cosine) |
+| VectorIndex | `sqlite-vec` | `pgvector` (`vector` type, `<->` L2) |
 | TextIndex | FTS5 | `tsvector`/`tsquery` + GIN index |
 
-- [ ] All 5 stores implemented for Postgres (asyncpg + pgvector)
-- [ ] `db_url` parameter on `Memory` (`postgresql://...`), mutually exclusive with `db_path`
-- [ ] Optional dependency: `pip install memvee[postgres]`
-- [ ] Parametrized tests: `@pytest.mark.parametrize("backend", ["sqlite", "postgres"])`
-- [ ] CI service container for Postgres
+- [x] All 5 stores implemented for Postgres (asyncpg + pgvector) — `src/memv/storage/postgres/`
+- [x] `db_url` parameter on `Memory` (`postgresql://...`), auto-detects `backend="postgres"`
+- [x] Optional dependency: `pip install memvee[postgres]`
+- [x] Parametrized tests via `--backend` CLI option (fixture-level, existing tests unchanged)
+- [x] CI service container for Postgres (`pgvector/pgvector:pg17`)
 
 ### v0.2.0 Verification
 

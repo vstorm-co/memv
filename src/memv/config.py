@@ -23,6 +23,7 @@ class MemoryConfig:
     # Database
     backend: str = "sqlite"
     db_path: str = ".db/memory.db"
+    db_url: str | None = None  # PostgreSQL connection URL (e.g. "postgresql://user:pass@host/db")
     embedding_dimensions: int = 1536
 
     # Processing triggers

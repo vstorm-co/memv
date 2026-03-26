@@ -27,6 +27,12 @@ dependencies = [
     "textual>=3.5.0",
 ]
 
+[project.optional-dependencies]
+postgres = [
+    "asyncpg>=0.30.0",
+    "pgvector>=0.3.6",
+]
+
 [project.scripts]
 memv = "memv:main"
 
@@ -46,7 +52,9 @@ module-name = "memv"
 
 [dependency-groups]
 dev = [
+    "asyncpg>=0.30.0",
     "ipython>=9.9.0",
+    "pgvector>=0.3.6",
     "pre-commit>=4.5.1",
     "pytest>=9.0.2",
     "pytest-asyncio>=1.3.0",

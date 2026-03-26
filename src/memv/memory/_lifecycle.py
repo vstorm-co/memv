@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import warnings
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from memv.cache import EmbeddingCache
 from memv.config import MemoryConfig
@@ -21,6 +21,7 @@ class LifecycleManager:
     def __init__(
         self,
         db_path: str | None = None,
+        db_url: str | None = None,
         embedding_client: EmbeddingClient | None = None,
         llm_client: LLMClient | None = None,
         embedding_dimensions: int | None = None,
@@ -48,6 +49,15 @@ class LifecycleManager:
     ):
         # Use config or defaults
         cfg = config or MemoryConfig()
+
+        # Auto-detect backend from db_url
+        effective_db_url = db_url or cfg.db_url
+        if effective_db_url:
+            self._backend = "postgres"
+            self.db_url = effective_db_url
+        else:
+            self._backend = cfg.backend
+            self.db_url = None
 
         # Determine database path from argument or config
         if db_path is None and embedding_client is None:
@@ -99,13 +109,21 @@ class LifecycleManager:
             embedding_cache_ttl_seconds if embedding_cache_ttl_seconds is not None else cfg.embedding_cache_ttl_seconds
         )
 
-        # Create stores via backend factory
+        # Store type annotations (assigned in _create_stores or open)
         self.messages: MessageStore
         self.episodes: EpisodeStore
         self.knowledge: KnowledgeStore
         self.vector_index: VectorIndex
         self.text_index: TextIndex
-        self._create_stores(cfg.backend)
+
+        # Postgres pool (created in open, closed in close)
+        self._pg_pool: Any = None
+
+        # Create stores for sqlite immediately; postgres defers to open()
+        if self._backend == "sqlite":
+            self._create_sqlite_stores()
+        elif self._backend != "postgres":
+            raise ValueError(f"Unknown backend: {self._backend!r}. Supported: 'sqlite', 'postgres'.")
 
         # Processing components (initialized in open())
         self.retriever: Retriever | None = None
@@ -118,34 +136,51 @@ class LifecycleManager:
         # State
         self.is_open = False
 
-    def _create_stores(self, backend: str) -> None:
-        """Instantiate stores and indices for the given backend."""
-        if backend == "sqlite":
-            # Ensure parent directory exists
-            db_dir = Path(self.db_path).parent
-            if db_dir != Path("."):
-                db_dir.mkdir(parents=True, exist_ok=True)
+    def _create_sqlite_stores(self) -> None:
+        db_dir = Path(self.db_path).parent
+        if db_dir != Path("."):
+            db_dir.mkdir(parents=True, exist_ok=True)
 
-            from memv.storage.sqlite import EpisodeStore, KnowledgeStore, MessageStore, TextIndex, VectorIndex
+        from memv.storage.sqlite import EpisodeStore, KnowledgeStore, MessageStore, TextIndex, VectorIndex
 
-            self.messages = MessageStore(self.db_path)
-            self.episodes = EpisodeStore(self.db_path)
-            self.knowledge = KnowledgeStore(self.db_path)
-            self.vector_index = VectorIndex(self.db_path, dimensions=self.dimensions, name="knowledge")
-            self.text_index = TextIndex(self.db_path, name="knowledge")
-        else:
-            raise ValueError(f"Unknown backend: {backend!r}. Supported: 'sqlite'.")
+        self.messages = MessageStore(self.db_path)
+        self.episodes = EpisodeStore(self.db_path)
+        self.knowledge = KnowledgeStore(self.db_path)
+        self.vector_index = VectorIndex(self.db_path, dimensions=self.dimensions, name="knowledge")
+        self.text_index = TextIndex(self.db_path, name="knowledge")
+
+    async def _create_postgres_stores(self) -> None:
+        import asyncpg
+        from pgvector.asyncpg import register_vector
+
+        async def _init_conn(conn: asyncpg.Connection) -> None:
+            await register_vector(conn)
+
+        self._pg_pool = await asyncpg.create_pool(self.db_url, init=_init_conn)
+
+        from memv.storage.postgres import EpisodeStore, KnowledgeStore, MessageStore, TextIndex, VectorIndex
+
+        self.messages = MessageStore(self._pg_pool)
+        self.episodes = EpisodeStore(self._pg_pool)
+        self.knowledge = KnowledgeStore(self._pg_pool)
+        self.vector_index = VectorIndex(self._pg_pool, dimensions=self.dimensions)
+        self.text_index = TextIndex(self._pg_pool)
 
     async def open(self) -> None:
         """Open all database connections and initialize components."""
         if self.is_open:
             return
 
+        # Postgres stores are created here (pool creation is async)
+        if self._backend == "postgres":
+            await self._create_postgres_stores()
+
         await self.messages.open()
         await self.episodes.open()
         await self.knowledge.open()
         await self.vector_index.open()
         await self.text_index.open()
+
         # Create embedding cache if enabled
         embedding_cache = None
         if self.enable_embedding_cache:
@@ -197,6 +232,11 @@ class LifecycleManager:
         await self.knowledge.close()
         await self.vector_index.close()
         await self.text_index.close()
+
+        if self._pg_pool is not None:
+            await self._pg_pool.close()
+            self._pg_pool = None
+
         self.is_open = False
 
     def ensure_open(self) -> None:
