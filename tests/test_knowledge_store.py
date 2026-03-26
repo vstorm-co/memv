@@ -1,6 +1,8 @@
 from datetime import datetime, timezone
 from uuid import uuid4
 
+import pytest
+
 from .conftest import make_knowledge
 
 
@@ -175,9 +177,11 @@ async def test_clear_by_episodes_empty_list(knowledge_store):
     assert await knowledge_store.count() == 1
 
 
-async def test_user_id_none_for_backwards_compat(knowledge_store):
-    """Knowledge created without user_id should store and retrieve with None."""
-    k = make_knowledge(statement="no user")
+async def test_user_id_none_for_backwards_compat(backend, knowledge_store):
+    """SQLite allows null user_id for backwards compat with legacy data. Postgres requires NOT NULL."""
+    if backend == "postgres":
+        pytest.skip("Postgres requires user_id NOT NULL")
+    k = make_knowledge(statement="no user", user_id=None)
     await knowledge_store.add(k)
 
     got = await knowledge_store.get(k.id)

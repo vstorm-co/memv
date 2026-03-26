@@ -184,7 +184,7 @@ class KnowledgeStore(PgStoreBase):
         await conn.execute("""
             CREATE TABLE IF NOT EXISTS semantic_knowledge (
                 id TEXT PRIMARY KEY,
-                user_id TEXT,
+                user_id TEXT NOT NULL,
                 statement TEXT NOT NULL,
                 source_episode_id TEXT,
                 created_at BIGINT NOT NULL,

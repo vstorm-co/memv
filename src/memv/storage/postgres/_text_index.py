@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import re
 from typing import TYPE_CHECKING
 from uuid import UUID
 
@@ -25,27 +24,26 @@ class TextIndex(PgStoreBase):
             )
 
     async def search(self, query: str, top_k: int = 10, user_id: str | None = None) -> list[UUID]:
-        sanitized = self._sanitize_query(query)
-        if not sanitized:
+        if not query.strip():
             return []
         async with self._pool.acquire() as conn:
             if user_id is not None:
                 rows = await conn.fetch(
                     """SELECT id FROM fts_knowledge
-                    WHERE user_id = $1 AND content_tsvector @@ to_tsquery('english', $2)
-                    ORDER BY ts_rank(content_tsvector, to_tsquery('english', $2)) DESC
+                    WHERE user_id = $1 AND content_tsvector @@ plainto_tsquery('english', $2)
+                    ORDER BY ts_rank(content_tsvector, plainto_tsquery('english', $2)) DESC
                     LIMIT $3""",
                     user_id,
-                    sanitized,
+                    query,
                     top_k,
                 )
             else:
                 rows = await conn.fetch(
                     """SELECT id FROM fts_knowledge
-                    WHERE content_tsvector @@ to_tsquery('english', $1)
-                    ORDER BY ts_rank(content_tsvector, to_tsquery('english', $1)) DESC
+                    WHERE content_tsvector @@ plainto_tsquery('english', $1)
+                    ORDER BY ts_rank(content_tsvector, plainto_tsquery('english', $1)) DESC
                     LIMIT $2""",
-                    sanitized,
+                    query,
                     top_k,
                 )
         return [UUID(row["id"]) for row in rows]
@@ -59,14 +57,6 @@ class TextIndex(PgStoreBase):
         async with self._pool.acquire() as conn:
             status = await conn.execute("DELETE FROM fts_knowledge WHERE user_id = $1", user_id)
         return _parse_rowcount(status)
-
-    def _sanitize_query(self, query: str) -> str:
-        """Convert raw query to tsquery-safe format: strip special chars, AND between words."""
-        cleaned = re.sub(r"[^\w\s]", " ", query)
-        words = cleaned.split()
-        if not words:
-            return ""
-        return " & ".join(words)
 
     async def _create_table(self, conn: asyncpg.Connection) -> None:
         await conn.execute("""

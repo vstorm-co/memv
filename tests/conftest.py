@@ -190,7 +190,7 @@ def make_episode(user_id="user1", title="Test Episode", content="A test episode.
 
 def make_knowledge(
     episode_id=None,
-    user_id=None,
+    user_id="user1",
     statement="User likes Python",
     embedding=None,
     valid_at=None,
