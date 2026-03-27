@@ -15,6 +15,7 @@ Install with the postgres extra:
 
 ```bash
 uv add memvee[postgres]
+# or: pip install memvee[postgres]
 ```
 
 This installs `asyncpg` and `pgvector`.

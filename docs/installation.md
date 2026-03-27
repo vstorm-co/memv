@@ -17,6 +17,13 @@ For PostgreSQL support:
 uv add memvee[postgres]
 ```
 
+Or with pip:
+
+```bash
+pip install memvee
+pip install memvee[postgres]  # with PostgreSQL
+```
+
 ## Environment Variables
 
 Set your API key for the default adapters:
