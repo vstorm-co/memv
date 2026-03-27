@@ -30,6 +30,7 @@ jobs:
     needs: check-fork
     if: needs.check-fork.outputs.is_fork == 'false'
     runs-on: ubuntu-latest
+    continue-on-error: true
     permissions:
       contents: read
       pull-requests: write
