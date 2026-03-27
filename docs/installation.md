@@ -5,16 +5,16 @@
 - Python 3.13+
 - OpenAI API key (for default adapters)
 
-## Install from PyPI
-
-```bash
-pip install memvee
-```
-
-Or with uv:
+## Install
 
 ```bash
 uv add memvee
+```
+
+For PostgreSQL support:
+
+```bash
+uv add memvee[postgres]
 ```
 
 ## Environment Variables

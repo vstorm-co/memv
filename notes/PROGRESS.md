@@ -248,3 +248,18 @@ Major plan restructure — cut scope from 35 sections across 5 releases down to 
 - Restructured: v0.1.1 is now complete — benchmarks (§6) deferred to v0.2.0+, all other items done.
 - Restructured: v0.2.0 narrowed to Protocol cleanup (§7, was §9) + PostgreSQL backend (§8, was §10) only. Knowledge relationships, user profiles, DX improvements, and benchmarks moved to Ideas Parking Lot. Driver: CEO pressure to ship marketable release + friend needs Postgres for real-world testing.
 - Decision: ship v0.1.1 now, then focus v0.2.0 entirely on Postgres to unblock first external user.
+
+## 2026-03-27
+
+- Checked off: all 6 items under §7 (Protocol Cleanup) — complete store/index protocols, VectorIndex/TextIndex protocols, open/close, backend factory, Retriever imports. Merged as PR #22.
+- Checked off: all 5 items under §8 (PostgreSQL Backend) — 5 stores in `src/memv/storage/postgres/`, `db_url` param, `memvee[postgres]` optional dep, parametrized test fixtures via `--backend`, CI service container with `pgvector/pgvector:pg17`. PR #23.
+- Added: §9 (Embedding Adapters) — Voyage, Cohere, local/fastembed. Not adding: more vector DBs (hybrid retrieval is a strength), more LLM adapters (PydanticAI covers it).
+- Decision: unified `db_path`+`db_url` into single `db_url` parameter. File path for SQLite, `postgresql://...` for Postgres. Backend auto-detected from URL prefix or set explicitly via `MemoryConfig.backend` ("auto"/"sqlite"/"postgres"). Breaking change from v0.1.1.
+- Decision: unscoped methods (`get_all`, `get_current`, `get_valid_at`, `count`) excluded from protocols — violate user isolation. SQLite keeps them for dashboard. Scoped versions to be added when needed.
+- Decision: L2 distance in pgvector (not cosine) to match sqlite-vec behavior — keeps `has_near_duplicate` thresholds consistent across backends.
+- Decision: no mapping tables in Postgres — pgvector and tsvector/tsquery support WHERE clauses directly (unlike sqlite-vec/FTS5).
+- Decision: `plainto_tsquery` over `to_tsquery` in Postgres TextIndex — handles stop words gracefully without manual sanitization.
+- Decision: per-fixture pool creation in tests (not shared) — shared pool breaks across pytest-asyncio event loops.
+- Decision: `user_id NOT NULL` in Postgres semantic_knowledge schema (SQLite keeps nullable for backwards compat with legacy data).
+- Verified: demo.py works end-to-end against both SQLite and Postgres.
+- Updated: current state summary — v0.2.0 nearly complete, embedding adapters (§9) remaining.

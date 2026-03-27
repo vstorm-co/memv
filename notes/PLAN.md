@@ -1,9 +1,9 @@
 # Next Steps Plan
-Last updated: 2026-03-25
+Last updated: 2026-03-27
 
 **Mission:** Make memv the best "remember what users said" library. Solid semantic memory first, then procedural/agent memory as the differentiator.
 
-**Current state:** v0.1.1 ready to ship. Core pipeline works end-to-end. 229 tests for ~4.8K LOC. Predict-calibrate extraction, write-time temporal normalization, bi-temporal validity, episode segmentation — no single competitor has all four. user_id denormalization, knowledge CRUD (PR #16), contradiction handling, direct injection (PR #18), duplicate embedding column removal (#21) all complete. LongMemEval harness built, full run deferred.
+**Current state:** v0.2.0 nearly complete. Protocol cleanup (§7) merged (#22). PostgreSQL backend (§8) in PR #23 — all 5 stores ported to asyncpg/pgvector, tested against local Postgres (316 tests across both backends). API unified to single `db_url` parameter. Embedding adapters (§9) are the remaining v0.2.0 item.
 
 **What's unique about memv:**
 - Predict-calibrate extraction (only Nemori shares this — importance from prediction error)
@@ -15,7 +15,7 @@ Last updated: 2026-03-25
 - ~~Knowledge CRUD through public API~~ (done — PR #16)
 - ~~Score/relevance threshold on retrieval~~ (skipped — `top_k` sufficient, see §5)
 - ~~Direct knowledge injection (bootstrapping without fake conversations)~~ (done — PR #18)
-- A second storage backend (Mem0 has 6+, most have 2+)
+- ~~A second storage backend~~ (done — PostgreSQL via `memvee[postgres]`, PR #23)
 
 **Related docs:**
 - `notes/PLAN_v1_backup.md` — previous plan with full competitive-analysis-driven roadmap

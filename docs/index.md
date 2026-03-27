@@ -31,7 +31,7 @@
 ## Quick Start
 
 ```bash
-pip install memvee
+uv add memvee
 ```
 
 ```python
@@ -71,7 +71,7 @@ async with memory:
 | **Episode Segmentation** | Automatic grouping of messages into coherent episodes |
 | **Contradiction Handling** | New facts invalidate conflicting old facts, full history preserved |
 | **Async Processing** | Non-blocking `process_async()` with auto-processing |
-| **SQLite Default** | Zero-config with sqlite-vec for vectors and FTS5 for text |
+| **SQLite + PostgreSQL** | SQLite for local dev, PostgreSQL with pgvector for production |
 
 ## Architecture
 
@@ -79,11 +79,13 @@ async with memory:
 flowchart TD
     M[Messages] --> E[Episodes]
     E --> K[Knowledge]
-    K --> VI[Vector Index<br>sqlite-vec]
-    K --> TI[Text Index<br>FTS5]
+    K --> VI[Vector Index]
+    K --> TI[Text Index]
+    VI -.- S1[sqlite-vec / pgvector]
+    TI -.- S2[FTS5 / tsvector]
 ```
 
-See [Core Concepts](concepts/index.md) for the full breakdown.
+See [Core Concepts](concepts/index.md) for the full breakdown, or [Backends](backends/sqlite.md) for storage details.
 
 ## Framework Integration
 
