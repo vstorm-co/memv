@@ -26,7 +26,7 @@ Your PostgreSQL server needs the pgvector extension. Most managed providers (Sup
 CREATE EXTENSION IF NOT EXISTS vector;
 ```
 
-memv runs this automatically on first connection, but the database role needs `CREATE` privilege on the database.
+memv runs this automatically on first connection, but the database role must have **superuser** privilege (or `pg_extension_owner` membership on PostgreSQL 15+). Most managed providers (Supabase, Neon) pre-install pgvector and allow non-superuser roles to enable it — no extra steps needed there.
 
 ## Usage
 
