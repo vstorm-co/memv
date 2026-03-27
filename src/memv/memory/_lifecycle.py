@@ -214,20 +214,19 @@ class LifecycleManager:
 
     async def close(self) -> None:
         """Close all database connections."""
-        if not self.is_open:
-            return
+        if self.is_open:
+            await self.messages.close()
+            await self.episodes.close()
+            await self.knowledge.close()
+            await self.vector_index.close()
+            await self.text_index.close()
+            self.is_open = False
 
-        await self.messages.close()
-        await self.episodes.close()
-        await self.knowledge.close()
-        await self.vector_index.close()
-        await self.text_index.close()
-
+        # Pool cleanup runs regardless of is_open — if open() failed after
+        # pool creation, we still need to close the pool.
         if self._pg_pool is not None:
             await self._pg_pool.close()
             self._pg_pool = None
-
-        self.is_open = False
 
     def ensure_open(self) -> None:
         """Raise if not open."""
