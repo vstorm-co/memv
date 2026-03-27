@@ -141,8 +141,11 @@ class LifecycleManager:
         from pgvector.asyncpg import register_vector
 
         # Extension must exist before pool init can register the vector type
-        async with await asyncpg.connect(self.db_url) as conn:
+        conn = await asyncpg.connect(self.db_url)
+        try:
             await conn.execute("CREATE EXTENSION IF NOT EXISTS vector")
+        finally:
+            await conn.close()
 
         async def _init_conn(conn: asyncpg.Connection) -> None:
             await register_vector(conn)
