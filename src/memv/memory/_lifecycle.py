@@ -65,7 +65,12 @@ class LifecycleManager:
         self.embedder = embedding_client
         self.llm = llm_client
 
-        self.dimensions = embedding_dimensions if embedding_dimensions is not None else cfg.embedding_dimensions
+        if embedding_dimensions is not None:
+            self.dimensions = embedding_dimensions
+        elif hasattr(self.embedder, "dimensions"):
+            self.dimensions: int = self.embedder.dimensions
+        else:
+            self.dimensions = cfg.embedding_dimensions
 
         # Auto-processing config
         self.auto_process = auto_process if auto_process is not None else cfg.auto_process

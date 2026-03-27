@@ -18,43 +18,8 @@ class MyEmbedder:
         ...
 ```
 
-!!! warning "Dimension consistency"
-    The vector dimensions must match `embedding_dimensions` in your config (default: 1536). If your model produces 768-dimensional vectors, set `embedding_dimensions=768`.
-
-### Example: Cohere
-
-```python
-import cohere
-
-
-class CohereEmbedder:
-    def __init__(self, model: str = "embed-english-v3.0"):
-        self.client = cohere.AsyncClient()
-        self.model = model
-
-    async def embed(self, text: str) -> list[float]:
-        response = await self.client.embed(
-            texts=[text],
-            model=self.model,
-            input_type="search_query",
-        )
-        return response.embeddings[0]
-
-    async def embed_batch(self, texts: list[str]) -> list[list[float]]:
-        response = await self.client.embed(
-            texts=texts,
-            model=self.model,
-            input_type="search_document",
-        )
-        return response.embeddings
-
-
-memory = Memory(
-    embedding_client=CohereEmbedder(),
-    embedding_dimensions=1024,  # Cohere v3 outputs 1024
-    # ...
-)
-```
+!!! tip "Automatic dimensions"
+    Built-in adapters declare their output dimensions. memv reads this automatically — no need to set `embedding_dimensions` manually. For custom adapters, either add a `dimensions` attribute to your class, or set `embedding_dimensions` in your config.
 
 ## LLMClient
 
@@ -110,20 +75,63 @@ class AnthropicLLM:
         return response_model.model_validate(data)
 ```
 
-## Built-in Adapters
-
-memv ships with two adapters that cover most use cases:
+## Built-in Embedding Adapters
 
 ### OpenAIEmbedAdapter
+
+```bash
+uv add memvee  # included by default
+```
 
 ```python
 from memv.embeddings import OpenAIEmbedAdapter
 
-embedder = OpenAIEmbedAdapter(
-    api_key=None,                          # Uses OPENAI_API_KEY env var
-    model="text-embedding-3-small",        # Default model
-)
+embedder = OpenAIEmbedAdapter()                              # text-embedding-3-small (1536 dims)
+embedder = OpenAIEmbedAdapter(model="text-embedding-3-large")  # 3072 dims
 ```
+
+### VoyageEmbedAdapter
+
+```bash
+uv add memvee[voyage]
+```
+
+```python
+from memv.embeddings import VoyageEmbedAdapter
+
+embedder = VoyageEmbedAdapter()                        # voyage-3-lite (1024 dims)
+embedder = VoyageEmbedAdapter(model="voyage-3")        # voyage-3 (1024 dims)
+```
+
+### CohereEmbedAdapter
+
+```bash
+uv add memvee[cohere]
+```
+
+```python
+from memv.embeddings import CohereEmbedAdapter
+
+embedder = CohereEmbedAdapter()                        # embed-v4.0 (1024 dims)
+embedder = CohereEmbedAdapter(model="embed-english-light-v3.0")  # 384 dims
+```
+
+### FastEmbedAdapter (local, no API key)
+
+```bash
+uv add memvee[local]
+```
+
+```python
+from memv.embeddings import FastEmbedAdapter
+
+embedder = FastEmbedAdapter()                          # BAAI/bge-small-en-v1.5 (384 dims)
+embedder = FastEmbedAdapter(model="BAAI/bge-base-en-v1.5")  # 768 dims
+```
+
+Runs locally via ONNX runtime — no API key needed. Models are downloaded on first use.
+
+## Built-in LLM Adapter
 
 ### PydanticAIAdapter
 
