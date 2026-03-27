@@ -49,10 +49,8 @@ async def _create_pg_pool():
     from pgvector.asyncpg import register_vector
 
     if not _pg_extension_created:
-    if not _pg_extension_created:
         async with await asyncpg.connect(url) as conn:
             await conn.execute("CREATE EXTENSION IF NOT EXISTS vector")
-        _pg_extension_created = True
         _pg_extension_created = True
 
     async def _init(conn):
