@@ -82,7 +82,6 @@ class VectorIndex(PgStoreBase):
         return _parse_rowcount(status)
 
     async def _create_table(self, conn: asyncpg.Connection) -> None:
-        await conn.execute("CREATE EXTENSION IF NOT EXISTS vector")
         await conn.execute(f"""
             CREATE TABLE IF NOT EXISTS vec_knowledge (
                 id TEXT PRIMARY KEY,
