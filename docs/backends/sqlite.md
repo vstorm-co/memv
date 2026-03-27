@@ -13,6 +13,11 @@ The default backend. Zero-config, single-file storage using [sqlite-vec](https:/
 
 No extra dependencies — SQLite is included by default.
 
+```bash
+uv add memvee
+# or: pip install memvee
+```
+
 ```python
 from memv import Memory
 from memv.embeddings import OpenAIEmbedAdapter
