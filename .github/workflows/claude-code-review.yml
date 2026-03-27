@@ -6,10 +6,6 @@ on:
     branches:
       - main
 
-concurrency:
-  group: claude-review-${{ github.event.pull_request.number }}
-  cancel-in-progress: true
-
 jobs:
   check-fork:
     runs-on: ubuntu-latest
@@ -30,7 +26,6 @@ jobs:
     needs: check-fork
     if: needs.check-fork.outputs.is_fork == 'false'
     runs-on: ubuntu-latest
-    continue-on-error: true
     permissions:
       contents: read
       pull-requests: write
