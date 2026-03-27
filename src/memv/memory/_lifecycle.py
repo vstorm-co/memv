@@ -65,10 +65,11 @@ class LifecycleManager:
         self.embedder = embedding_client
         self.llm = llm_client
 
+        adapter_dims = getattr(self.embedder, "dimensions", None)
         if embedding_dimensions is not None:
             self.dimensions = embedding_dimensions
-        elif hasattr(self.embedder, "dimensions"):
-            self.dimensions: int = self.embedder.dimensions
+        elif adapter_dims is not None:
+            self.dimensions: int = adapter_dims
         else:
             self.dimensions = cfg.embedding_dimensions
 

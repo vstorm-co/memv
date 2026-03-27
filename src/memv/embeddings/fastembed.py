@@ -12,10 +12,10 @@ _MODEL_DIMENSIONS = {
 
 class FastEmbedAdapter:
     def __init__(self, model: str = "BAAI/bge-small-en-v1.5"):
-        self.model_name = model
-        self._model = TextEmbedding(model)
         if model not in _MODEL_DIMENSIONS:
             raise ValueError(f"Unknown model {model!r}. Known: {list(_MODEL_DIMENSIONS)}. Use a custom adapter for other models.")
+        self.model_name = model
+        self._model = TextEmbedding(model)
         self.dimensions = _MODEL_DIMENSIONS[model]
 
     async def embed(self, text: str) -> list[float]:

@@ -11,9 +11,7 @@ class OpenAIEmbedAdapter:
     def __init__(self, api_key: str | None = None, model: str = "text-embedding-3-small"):
         self.client = AsyncOpenAI(api_key=api_key)
         self.model = model
-        if model not in _MODEL_DIMENSIONS:
-            raise ValueError(f"Unknown model {model!r}. Known: {list(_MODEL_DIMENSIONS)}. Use a custom adapter for other models.")
-        self.dimensions = _MODEL_DIMENSIONS[model]
+        self.dimensions: int | None = _MODEL_DIMENSIONS.get(model)
 
     async def embed(self, text: str) -> list[float]:
         response = await self.client.embeddings.create(input=text, model=self.model)
