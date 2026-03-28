@@ -1,6 +1,6 @@
 # Custom Providers
 
-memv uses two protocols for external services: `EmbeddingClient` and `LLMClient`. Implement them to use any provider.
+memv uses two protocols for external services: `EmbeddingClient` and `LLMClient`. Implement them to use your preferred provider.
 
 ## EmbeddingClient
 
@@ -19,7 +19,7 @@ class MyEmbedder:
 ```
 
 !!! tip "Automatic dimensions"
-    Built-in adapters declare their output dimensions. memv reads this automatically — no need to set `embedding_dimensions` manually. For custom adapters, either add a `dimensions` attribute to your class, or set `embedding_dimensions` in your config.
+    Built-in adapters declare their output dimensions, and memv reads them directly. For custom adapters, add a `dimensions` attribute to your class or set `embedding_dimensions` in your config.
 
 ## LLMClient
 
@@ -40,7 +40,7 @@ class MyLLM:
         ...
 ```
 
-`generate_structured` must return an instance of the given Pydantic model. This is used for episode generation and knowledge extraction where memv needs structured output.
+`generate_structured` must return an instance of the given Pydantic model. memv calls it during episode generation and knowledge extraction to get structured output.
 
 ### Example: Anthropic (direct)
 
@@ -129,13 +129,13 @@ embedder = FastEmbedAdapter()                          # BAAI/bge-small-en-v1.5 
 embedder = FastEmbedAdapter(model="BAAI/bge-base-en-v1.5")  # 768 dims
 ```
 
-Runs locally via ONNX runtime — no API key needed. Models are downloaded on first use.
+Runs locally via ONNX runtime. Models download on first use.
 
 ## Built-in LLM Adapter
 
 ### PydanticAIAdapter
 
-Multi-provider LLM via PydanticAI. Supports OpenAI, Anthropic, Google, Groq, and more.
+LLM adapter via PydanticAI. Supports OpenAI, Anthropic, Google, and Groq.
 
 ```python
 from memv.llm import PydanticAIAdapter

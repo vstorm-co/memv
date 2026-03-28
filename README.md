@@ -23,7 +23,7 @@
 
 ---
 
-Most memory systems extract everything and hope retrieval sorts it out. memv only extracts what the model **failed to predict** — importance emerges from prediction error, not upfront scoring.
+Most memory systems extract everything and rely on retrieval to filter it. memv extracts only what the model **failed to predict** — importance emerges from prediction error, not upfront scoring.
 
 | Typical Approach | memv |
 |------------------|------|
@@ -75,19 +75,19 @@ async with memory:
 
 **Hybrid Retrieval** · Vector similarity + BM25 text search with Reciprocal Rank Fusion.
 
-**Episode Segmentation** · Automatically groups messages into coherent conversation episodes.
+**Episode Segmentation** · Groups messages into coherent conversation episodes.
 
 **Contradiction Handling** · New facts invalidate conflicting old facts. Full audit trail preserved.
 
-**SQLite + PostgreSQL** · SQLite for local dev, PostgreSQL with pgvector for production. Single `db_url` switches between them.
+**SQLite + PostgreSQL** · SQLite for local dev, PostgreSQL with pgvector for production. Set `db_url` to choose between them.
 
-**Multiple Embedding Providers** · OpenAI, Voyage, Cohere, or local via fastembed. Auto-detects dimensions.
+**Multiple Embedding Providers** · OpenAI, Voyage, Cohere, or local via fastembed. Dimensions detected from the adapter.
 
 ---
 
 ## Point-in-Time Queries
 
-memv's bi-temporal model lets you query knowledge as it was at any moment:
+memv's bi-temporal model lets you query knowledge as of a specific point in time:
 
 ```python
 from datetime import datetime
@@ -125,8 +125,6 @@ Messages → Episodes → Knowledge → Vector Index + Text Index
 ---
 
 ## Framework Integration
-
-memv works with any agent framework:
 
 ```python
 class MyAgent:

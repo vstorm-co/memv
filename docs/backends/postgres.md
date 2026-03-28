@@ -26,7 +26,7 @@ Your PostgreSQL server needs the pgvector extension. Most managed providers (Sup
 CREATE EXTENSION IF NOT EXISTS vector;
 ```
 
-memv runs this automatically on first connection, but the database role must have **superuser** privilege (or `pg_extension_owner` membership on PostgreSQL 15+). Most managed providers (Supabase, Neon) pre-install pgvector and allow non-superuser roles to enable it — no extra steps needed there.
+memv runs this on first connection, but the database role needs **superuser** privilege (or `pg_extension_owner` membership on PostgreSQL 15+). Most managed providers (Supabase, Neon) pre-install pgvector and allow non-superuser roles to enable it.
 
 ## Usage
 
@@ -47,7 +47,7 @@ async with memory:
     await memory.add_exchange(...)
 ```
 
-The backend is auto-detected from the URL prefix (`postgresql://` or `postgres://`). You can also set it explicitly:
+memv detects the backend from the URL prefix (`postgresql://` or `postgres://`). You can also set it explicitly:
 
 ```python
 from memv import Memory, MemoryConfig
@@ -66,15 +66,15 @@ memory = Memory(config=config, embedding_client=embedder, llm_client=llm)
 | VectorIndex | `pgvector` with HNSW index, L2 distance |
 | TextIndex | `tsvector` generated column + GIN index |
 
-Unlike SQLite, no mapping tables are needed — pgvector and tsvector support `WHERE` clauses directly, so user filtering happens in the same query as the search.
+Unlike SQLite, pgvector and tsvector support `WHERE` clauses directly, so memv filters by user in the same query as the search.
 
 ## Connection pooling
 
-memv creates a single `asyncpg.Pool` shared across all stores. The pool is created when you call `memory.open()` (or enter the `async with` block) and closed on `memory.close()`.
+memv creates a single `asyncpg.Pool` and shares it across all stores. The pool is created when you call `memory.open()` (or enter the `async with` block) and closed on `memory.close()`.
 
 ## Schema
 
-Tables are created automatically on first `open()`. All tables use `CREATE TABLE IF NOT EXISTS`, so it's safe to point multiple instances at the same database.
+Tables are created on first `open()`. All tables use `CREATE TABLE IF NOT EXISTS`, so multiple instances can share the same database.
 
 | Table | Purpose |
 |-------|---------|

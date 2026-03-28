@@ -1,6 +1,6 @@
 # SQLite
 
-The default backend. Zero-config, single-file storage using [sqlite-vec](https://github.com/asg017/sqlite-vec) for vectors and [FTS5](https://www.sqlite.org/fts5.html) for text search.
+The default backend. Single-file storage using [sqlite-vec](https://github.com/asg017/sqlite-vec) for vectors and [FTS5](https://www.sqlite.org/fts5.html) for text search. No configuration required.
 
 ## When to use
 
@@ -30,7 +30,7 @@ memory = Memory(
 )
 ```
 
-Parent directories are created automatically. `db_url=".db/my_app/memory.db"` works out of the box.
+Parent directories are created if they don't exist. `db_url=".db/my_app/memory.db"` works.
 
 ## How it works
 
@@ -42,7 +42,7 @@ Parent directories are created automatically. `db_url=".db/my_app/memory.db"` wo
 | VectorIndex | sqlite-vec virtual table + mapping table for user filtering |
 | TextIndex | FTS5 virtual table + mapping table for user filtering |
 
-sqlite-vec and FTS5 use virtual tables that don't support `WHERE` clauses directly. memv uses a mapping table pattern to enable per-user filtering — a separate table maps UUIDs to rowids and user IDs, joined at query time.
+sqlite-vec and FTS5 use virtual tables that don't support `WHERE` clauses directly. memv uses a mapping table pattern to enable per-user filtering — a separate table maps UUIDs to rowids and user IDs, which memv joins at query time.
 
 ## Limitations
 
@@ -52,7 +52,7 @@ sqlite-vec and FTS5 use virtual tables that don't support `WHERE` clauses direct
 
 ## File location
 
-The database file is a single `.db` file containing all tables. To reset, delete the file.
+All tables live in a single `.db` file. To reset, delete it.
 
 ```bash
 rm memory.db  # fresh start

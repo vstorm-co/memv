@@ -44,17 +44,17 @@ if __name__ == "__main__":
     asyncio.run(main())
 ```
 
-That's it. After `process()`, memv has:
+After `process()`, memv has:
 
 1. Segmented the messages into an episode
 2. Generated a narrative summary
-3. Predicted what the episode should contain (nothing -- first time)
+3. Predicted what the episode should contain (empty prediction, since no prior knowledge exists)
 4. Extracted knowledge from the prediction gap
 5. Indexed everything for hybrid retrieval
 
 ## Agent Integration Pattern
 
-The typical pattern for adding memory to any agent:
+To add memory to an agent:
 
 ```python
 class MemoryAgent:
@@ -86,11 +86,11 @@ Use the context to personalize responses."""
         return assistant_message
 ```
 
-This pattern works with any framework. See [Examples](examples/index.md) for PydanticAI, LangGraph, LlamaIndex, CrewAI, and AutoGen integrations.
+See [Examples](examples/index.md) for PydanticAI, LangGraph, LlamaIndex, CrewAI, and AutoGen integrations.
 
 ## Using Different Providers
 
-The LLM adapter supports multiple providers via PydanticAI:
+Choose a provider:
 
 === "OpenAI"
 
@@ -128,6 +128,6 @@ See [PydanticAI models](https://ai.pydantic.dev/models/) for the full list.
 
 ## Next Steps
 
-- [Core Concepts](concepts/index.md) — How memv works under the hood
-- [Configuration](advanced/configuration.md) — Tuning all the knobs
-- [Custom Providers](advanced/custom-providers.md) — Bring your own embedding/LLM
+- [Core Concepts](concepts/index.md) — Predict-calibrate, episodes, bi-temporal model
+- [Configuration](advanced/configuration.md) — All configuration options
+- [Custom Providers](advanced/custom-providers.md) — Implement custom embedding and LLM adapters
