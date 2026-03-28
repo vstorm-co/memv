@@ -18,9 +18,9 @@ class VoyageEmbedAdapter:
         self.dimensions = _MODEL_DIMENSIONS[model]
 
     async def embed(self, text: str) -> list[float]:
-        result = await self.client.embed([text], model=self.model)
+        result = await self.client.embed([text], model=self.model, input_type="query")
         return result.embeddings[0]  # type: ignore[index]
 
     async def embed_batch(self, texts: list[str]) -> list[list[float]]:
-        result = await self.client.embed(texts, model=self.model)
+        result = await self.client.embed(texts, model=self.model, input_type="document")
         return result.embeddings  # type: ignore[return-value]
