@@ -32,6 +32,7 @@
 
 ```bash
 uv add memvee
+# or: pip install memvee
 ```
 
 ```python
@@ -72,6 +73,7 @@ async with memory:
 | **Contradiction Handling** | New facts invalidate conflicting old facts, full history preserved |
 | **Async Processing** | Non-blocking `process_async()` with auto-processing |
 | **SQLite + PostgreSQL** | SQLite for local dev, PostgreSQL with pgvector for production |
+| **Multiple Embeddings** | OpenAI, Voyage, Cohere, or local via fastembed. Auto-detects dimensions |
 
 ## Architecture
 
@@ -118,5 +120,6 @@ See [Examples](examples/index.md) for integrations with PydanticAI, LangGraph, L
 - [Installation](installation.md) — Get up and running
 - [Getting Started](getting-started.md) — First example and agent pattern
 - [Core Concepts](concepts/index.md) — How memv works under the hood
+- [Backends](backends/sqlite.md) — SQLite and PostgreSQL setup
 - [API Reference](api.md) — Complete API documentation
 - [Examples](examples/index.md) — Framework integrations
