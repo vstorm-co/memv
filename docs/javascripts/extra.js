@@ -1,1 +1,1 @@
-// Extra JavaScript for memv documentation
+// memv docs — no extra JS needed

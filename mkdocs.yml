@@ -75,11 +75,11 @@ nav:
     - Episodes: concepts/episodes.md
     - Bi-Temporal Validity: concepts/bi-temporal.md
     - Retrieval: concepts/retrieval.md
-  - Backends:
-    - SQLite: backends/sqlite.md
-    - PostgreSQL: backends/postgres.md
   - Advanced:
     - Configuration: advanced/configuration.md
+    - Backends:
+      - SQLite: advanced/backends/sqlite.md
+      - PostgreSQL: advanced/backends/postgres.md
     - Custom Providers: advanced/custom-providers.md
     - Async Processing: advanced/async-processing.md
   - Examples:

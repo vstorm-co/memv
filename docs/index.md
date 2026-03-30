@@ -17,7 +17,7 @@
 
 ---
 
-**memv** extracts knowledge from conversations using a predict-calibrate approach: importance emerges from prediction error, not upfront LLM scoring.
+**memv** (*/mɛm-viː/*) extracts knowledge from conversations using a predict-calibrate approach: importance emerges from prediction error, not upfront LLM scoring.
 
 ## Why memv?
 
@@ -32,6 +32,7 @@
 
 ```bash
 uv add memvee
+# or: pip install memvee
 ```
 
 ```python
@@ -68,10 +69,11 @@ async with memory:
 | **Predict-Calibrate** | Extract only what the model failed to predict ([Nemori](https://arxiv.org/abs/2508.03341)) |
 | **Bi-Temporal** | Event time + transaction time for point-in-time queries ([Graphiti](https://github.com/getzep/graphiti)) |
 | **Hybrid Retrieval** | Vector similarity + BM25 text search with RRF fusion |
-| **Episode Segmentation** | Automatic grouping of messages into coherent episodes |
-| **Contradiction Handling** | New facts invalidate conflicting old facts, full history preserved |
-| **Async Processing** | Non-blocking `process_async()` with auto-processing |
+| **Episode Segmentation** | Groups messages into coherent episodes |
+| **Contradiction Handling** | New facts invalidate conflicting old facts, full audit trail preserved |
+| **Async Processing** | Background processing via `process_async()` with configurable auto-trigger |
 | **SQLite + PostgreSQL** | SQLite for local dev, PostgreSQL with pgvector for production |
+| **Multiple Embeddings** | OpenAI, Voyage, Cohere, or local via fastembed. Dimensions detected from adapter |
 
 ## Architecture
 
@@ -85,11 +87,9 @@ flowchart TD
     TI -.- S2[FTS5 / tsvector]
 ```
 
-See [Core Concepts](concepts/index.md) for the full breakdown, or [Backends](backends/sqlite.md) for storage details.
+See [Core Concepts](concepts/index.md) for details, or [Backends](advanced/backends/sqlite.md) for storage setup.
 
 ## Framework Integration
-
-memv works with any agent framework:
 
 ```python
 class MyAgent:
@@ -115,8 +115,9 @@ See [Examples](examples/index.md) for integrations with PydanticAI, LangGraph, L
 
 ## Next Steps
 
-- [Installation](installation.md) — Get up and running
+- [Installation](installation.md) — Requirements and install
 - [Getting Started](getting-started.md) — First example and agent pattern
-- [Core Concepts](concepts/index.md) — How memv works under the hood
+- [Core Concepts](concepts/index.md) — Predict-calibrate, episodes, bi-temporal model
+- [Backends](advanced/backends/sqlite.md) — SQLite and PostgreSQL setup
 - [API Reference](api.md) — Complete API documentation
 - [Examples](examples/index.md) — Framework integrations
