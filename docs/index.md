@@ -87,7 +87,7 @@ flowchart TD
     TI -.- S2[FTS5 / tsvector]
 ```
 
-See [Core Concepts](concepts/index.md) for details, or [Backends](backends/sqlite.md) for storage setup.
+See [Core Concepts](concepts/index.md) for details, or [Backends](advanced/backends/sqlite.md) for storage setup.
 
 ## Framework Integration
 
@@ -118,6 +118,6 @@ See [Examples](examples/index.md) for integrations with PydanticAI, LangGraph, L
 - [Installation](installation.md) — Requirements and install
 - [Getting Started](getting-started.md) — First example and agent pattern
 - [Core Concepts](concepts/index.md) — Predict-calibrate, episodes, bi-temporal model
-- [Backends](backends/sqlite.md) — SQLite and PostgreSQL setup
+- [Backends](advanced/backends/sqlite.md) — SQLite and PostgreSQL setup
 - [API Reference](api.md) — Complete API documentation
 - [Examples](examples/index.md) — Framework integrations
