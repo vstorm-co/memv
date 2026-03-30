@@ -148,7 +148,7 @@ See [Examples](https://vstorm-co.github.io/memv/examples/) for PydanticAI, LangG
 
 - [Getting Started](https://vstorm-co.github.io/memv/getting-started/) — First example and agent pattern
 - [Core Concepts](https://vstorm-co.github.io/memv/concepts/) — Predict-calibrate, episodes, bi-temporal, retrieval
-- [Backends](https://vstorm-co.github.io/memv/backends/sqlite/) — SQLite and PostgreSQL setup
+- [Backends](https://vstorm-co.github.io/memv/advanced/backends/sqlite/) — SQLite and PostgreSQL setup
 - [API Reference](https://vstorm-co.github.io/memv/api/) — All public classes and methods
 
 ---
