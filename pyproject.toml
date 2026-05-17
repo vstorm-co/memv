@@ -19,6 +19,7 @@ classifiers = [
 ]
 dependencies = [
     "aiosqlite>=0.22.1",
+    "griffe>=1.0,<2",
     "openai>=2.15.0",
     "pydantic>=2.12.5",
     "pydantic-ai-slim>=1.75.0",

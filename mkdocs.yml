@@ -82,6 +82,7 @@ nav:
       - PostgreSQL: advanced/backends/postgres.md
     - Custom Providers: advanced/custom-providers.md
     - Async Processing: advanced/async-processing.md
+    - MCP Server: advanced/mcp-server.md
   - Examples:
     - examples/index.md
     - PydanticAI: examples/pydantic-ai.md
