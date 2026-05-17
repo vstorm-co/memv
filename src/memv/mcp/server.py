@@ -52,8 +52,8 @@ async def do_add_conversation(memory: Memory, user_id: str, user_message: str, a
     return "Stored exchange. No new knowledge extracted."
 
 
-async def do_list_memories(memory: Memory, user_id: str, limit: int = 20, offset: int = 0) -> str:
-    entries = await memory.list_knowledge(user_id, limit=limit, offset=offset)
+async def do_list_memories(memory: Memory, user_id: str, limit: int = 20, offset: int = 0, include_expired: bool = False) -> str:
+    entries = await memory.list_knowledge(user_id, limit=limit, offset=offset, include_expired=include_expired)
     if not entries:
         return "No memories stored."
     lines = []
@@ -173,6 +173,9 @@ def create_server(
         Requires LLM to be configured for knowledge extraction.
         Without LLM, messages are stored but no knowledge is extracted.
 
+        Note: extraction runs a full LLM round-trip (segmentation + predict-calibrate) inline,
+        which can take 10-30+ seconds on long histories. Configure your MCP client timeout accordingly.
+
         Args:
             user_message: What the user said
             assistant_message: What the assistant replied
@@ -182,15 +185,18 @@ def create_server(
         return await do_add_conversation(app.memory, _user_id(ctx, user_id), user_message, assistant_message, has_llm=app.has_llm)
 
     @mcp.tool()
-    async def list_memories(ctx: Context, user_id: str | None = None, limit: int = 20, offset: int = 0) -> str:
+    async def list_memories(
+        ctx: Context, user_id: str | None = None, limit: int = 20, offset: int = 0, include_expired: bool = False
+    ) -> str:
         """List stored knowledge for a user.
 
         Args:
             user_id: Override default user ID
             limit: Maximum entries to return
             offset: Skip this many entries (for pagination)
+            include_expired: If True, also surface superseded entries (marked [expired])
         """
-        return await do_list_memories(_app(ctx).memory, _user_id(ctx, user_id), limit, offset)
+        return await do_list_memories(_app(ctx).memory, _user_id(ctx, user_id), limit, offset, include_expired)
 
     @mcp.tool()
     async def delete_memory(knowledge_id: str, ctx: Context) -> str:

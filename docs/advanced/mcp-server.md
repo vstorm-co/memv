@@ -35,6 +35,9 @@ By default the server speaks `stdio` — the transport every desktop MCP client 
 !!! note "LLM is optional"
     Without `--llm-model`, `add_conversation` stores messages but does not extract knowledge. `search_memory` and `add_memory` still work — they don't need an LLM.
 
+!!! warning "add_conversation latency"
+    With an LLM configured, `add_conversation` runs segmentation and predict-calibrate extraction inline before returning. This can take 10–30+ seconds on long histories. Raise your MCP client's tool-call timeout accordingly (Claude Desktop defaults to ~60 s).
+
 ## Tools
 
 | Tool | Purpose |
