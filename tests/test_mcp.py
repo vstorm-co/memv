@@ -1,11 +1,12 @@
 """Tests for the memv MCP server tool logic."""
 
+import json
 import re
 
 import pytest
 from mcp.server.fastmcp import FastMCP
 
-from memv import Memory
+from memv import ExtractedKnowledge, Memory
 from memv.mcp.server import (
     create_server,
     do_add_conversation,
@@ -14,6 +15,7 @@ from memv.mcp.server import (
     do_list_memories,
     do_search_memory,
 )
+from memv.processing.extraction import ExtractionResponse
 
 
 @pytest.fixture
@@ -49,7 +51,8 @@ async def test_search_respects_top_k(memory):
     for i in range(5):
         await do_add_memory(memory, USER_ID, f"Fact number {i} about unique topic {i}")
     result = await do_search_memory(memory, USER_ID, "unique topic", top_k=2)
-    assert result.count("- ") <= 2
+    lines = [line for line in result.splitlines() if line.startswith("- ")]
+    assert len(lines) <= 2
 
 
 # ── add_memory ───────────────────────────────────────────────────────
@@ -75,6 +78,28 @@ async def test_add_conversation_without_llm(memory):
     result = await do_add_conversation(memory, USER_ID, "Hi there", "Hello!", has_llm=False)
     assert "Stored exchange" in result
     assert "--llm-model" in result
+
+
+async def test_add_conversation_with_llm_extracts_knowledge(tmp_path, mock_embedder, mock_llm):
+    mock_llm.set_responses("generate", [json.dumps({"title": "Intro", "content": "User shared favorite language."})])
+    mock_llm.set_responses(
+        "generate_structured",
+        [ExtractionResponse(extracted=[ExtractedKnowledge(statement="User likes Python", knowledge_type="new", confidence=0.9)])],
+    )
+    mem = Memory(
+        db_url=str(tmp_path / "mcp_llm.db"),
+        embedding_client=mock_embedder,
+        llm_client=mock_llm,
+        embedding_dimensions=1536,
+        enable_episode_merging=False,
+        enable_embedding_cache=False,
+    )
+    async with mem:
+        result = await do_add_conversation(mem, USER_ID, "I like Python", "Great choice!", has_llm=True)
+        assert "Extracted 1 knowledge entry" in result
+
+        listing = await do_list_memories(mem, USER_ID)
+        assert "User likes Python" in listing
 
 
 # ── list_memories ────────────────────────────────────────────────────

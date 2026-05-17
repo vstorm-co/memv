@@ -48,8 +48,8 @@ async def do_add_conversation(memory: Memory, user_id: str, user_message: str, a
         return "Stored exchange. Configure --llm-model to enable knowledge extraction."
     count = await memory.process(user_id)
     if count > 0:
-        return f"Stored exchange and extracted {count} knowledge {'entry' if count == 1 else 'entries'}."
-    return "Stored exchange. No new knowledge extracted."
+        return f"Stored exchange. Extracted {count} knowledge {'entry' if count == 1 else 'entries'} from all pending messages."
+    return "Stored exchange. No new knowledge extracted from pending messages."
 
 
 async def do_list_memories(memory: Memory, user_id: str, limit: int = 20, offset: int = 0, include_expired: bool = False) -> str:
