@@ -52,7 +52,7 @@ async def test_search_respects_top_k(memory):
         await do_add_memory(memory, USER_ID, f"Fact number {i} about unique topic {i}")
     result = await do_search_memory(memory, USER_ID, "unique topic", top_k=2)
     lines = [line for line in result.splitlines() if line.startswith("- ")]
-    assert len(lines) <= 2
+    assert 1 <= len(lines) <= 2
 
 
 # ── add_memory ───────────────────────────────────────────────────────
