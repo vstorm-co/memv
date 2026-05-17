@@ -63,7 +63,10 @@ async def do_list_memories(memory: Memory, user_id: str, limit: int = 20, offset
     return "\n".join(lines)
 
 
-async def do_delete_memory(memory: Memory, knowledge_id: str) -> str:
+async def do_delete_memory(memory: Memory, user_id: str, knowledge_id: str) -> str:
+    entry = await memory.get_knowledge(knowledge_id)
+    if entry is None or entry.user_id != user_id:
+        return f"Memory {knowledge_id} not found."
     deleted = await memory.delete_knowledge(knowledge_id)
     if deleted:
         return f"Deleted memory {knowledge_id}."
@@ -199,12 +202,16 @@ def create_server(
         return await do_list_memories(_app(ctx).memory, _user_id(ctx, user_id), limit, offset, include_expired)
 
     @mcp.tool()
-    async def delete_memory(knowledge_id: str, ctx: Context) -> str:
-        """Permanently delete a memory entry.
+    async def delete_memory(knowledge_id: str, ctx: Context, user_id: str | None = None) -> str:
+        """Permanently delete a memory entry owned by the caller.
+
+        Returns "not found" both when the UUID is unknown and when it belongs to another user —
+        no information leak about which UUIDs exist for other users.
 
         Args:
             knowledge_id: UUID of the knowledge entry to delete
+            user_id: Override default user ID
         """
-        return await do_delete_memory(_app(ctx).memory, knowledge_id)
+        return await do_delete_memory(_app(ctx).memory, _user_id(ctx, user_id), knowledge_id)
 
     return mcp

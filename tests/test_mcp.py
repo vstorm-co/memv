@@ -132,7 +132,7 @@ async def test_delete_existing(memory):
     add_result = await do_add_memory(memory, USER_ID, "Temporary fact")
     knowledge_id = re.search(r"\(id: ([^)]+)\)", add_result).group(1)
 
-    result = await do_delete_memory(memory, knowledge_id)
+    result = await do_delete_memory(memory, USER_ID, knowledge_id)
     assert "Deleted" in result
 
     list_result = await do_list_memories(memory, USER_ID)
@@ -140,8 +140,19 @@ async def test_delete_existing(memory):
 
 
 async def test_delete_nonexistent(memory):
-    result = await do_delete_memory(memory, "00000000-0000-0000-0000-000000000000")
+    result = await do_delete_memory(memory, USER_ID, "00000000-0000-0000-0000-000000000000")
     assert "not found" in result
+
+
+async def test_delete_rejects_cross_user(memory):
+    add_result = await do_add_memory(memory, "alice", "Alice's secret fact")
+    knowledge_id = re.search(r"\(id: ([^)]+)\)", add_result).group(1)
+
+    result = await do_delete_memory(memory, "bob", knowledge_id)
+    assert "not found" in result
+
+    listing = await do_list_memories(memory, "alice")
+    assert "Alice's secret fact" in listing
 
 
 # ── full cycle ───────────────────────────────────────────────────────
@@ -159,7 +170,7 @@ async def test_add_search_delete_cycle(memory):
     assert "startup" in listing
 
     knowledge_id = re.search(r"\(id: ([^)]+)\)", listing).group(1)
-    await do_delete_memory(memory, knowledge_id)
+    await do_delete_memory(memory, USER_ID, knowledge_id)
 
     listing = await do_list_memories(memory, USER_ID)
     lines = [line for line in listing.split("\n") if line.startswith("- ")]
