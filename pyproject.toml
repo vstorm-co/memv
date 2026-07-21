@@ -7,12 +7,15 @@ license = "MIT"
 authors = [
     { name = "bartosz roguski", email = "bartosz.k.roguski@gmail.com" }
 ]
-requires-python = ">=3.13"
+requires-python = ">=3.10"
 keywords = ["ai", "agents", "memory", "llm", "rag", "temporal"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
     "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
     "Typing :: Typed",
@@ -60,7 +63,7 @@ dev = [
     "asyncpg>=0.30.0",
     "cohere>=5.0.0",
     "fastembed>=0.6.0",
-    "ipython>=9.9.0",
+    "ipython>=8.0.0",
     "mcp>=1.0.0",
     "pgvector>=0.3.6",
     "voyageai>=0.3.0",

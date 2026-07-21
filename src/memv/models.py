@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 from datetime import datetime, timezone
-from enum import StrEnum
+from enum import Enum
 from typing import TYPE_CHECKING, Literal
 from uuid import UUID, uuid4
 
@@ -12,7 +12,7 @@ if TYPE_CHECKING:
     from asyncio import Task
 
 
-class MessageRole(StrEnum):
+class MessageRole(str, Enum):
     USER = "user"
     ASSISTANT = "assistant"
     SYSTEM = "system"
@@ -156,7 +156,7 @@ class ExtractedKnowledge(BaseModel):
     supersedes: int | None = None  # Index into numbered existing knowledge list
 
 
-class ProcessStatus(StrEnum):
+class ProcessStatus(str, Enum):
     PENDING = "pending"
     RUNNING = "running"
     COMPLETED = "completed"
