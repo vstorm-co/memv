@@ -2,7 +2,7 @@
 
 ## Prerequisites
 
-- Python 3.13+
+- Python 3.10+
 - OpenAI API key (for default adapters)
 
 ## Install
